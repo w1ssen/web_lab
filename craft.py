@@ -32,13 +32,17 @@ headers = {
 
 # 给定id搜索结果
 def search_douban_movie(id):
+    # 随机生成IP
+    ip = random_ip()
+    # 将IP加入到报头中
+    headers['X-Forwarded-For'] = ip
     # 构造搜索URL
     search_url = f"https://movie.douban.com/subject/{id}/"
-    # ip = random_ip()
     # 发送HTTP请求并获取页面内容
     response = requests.get(search_url, headers=headers)
     if response.status_code != 200:
         print("请求失败")
+        return
     # 使用BeautifulSoup解析页面内容
     soup = BeautifulSoup(response.text, "html.parser")
 
@@ -80,12 +84,77 @@ def search_douban_movie(id):
     print("=" * 40)
 
 
+def search_douban_book(id):
+    # 随机生成IP
+    ip = random_ip()
+    # 将IP加入到报头中
+    headers['X-Forwarded-For'] = ip
+    # 构造搜索URL
+    search_url = f"https://book.douban.com/subject/{id}/"
+    # 发送HTTP请求并获取页面内容
+    response = requests.get(search_url, headers=headers)
+    if response.status_code != 200:
+        print("请求失败")
+        return
+    # 使用BeautifulSoup解析页面内容
+    soup = BeautifulSoup(response.text, 'html.parser')
+    body = soup.find('body')
+    name = body.find('h1').find('span', {'property': 'v:itemreviewed'}).text
+    print("书名:", name)
+    info = body.find('div', {'id': 'info'}).text.strip()
+    # print(info)
+    index_1 = info.find('作者')
+    index_2 = info.find('出版社')
+    index_3 = info.find('原作名')
+    index_4 = info.find('译者')
+    index_5 = info.find('出版年')
+    index_6 = info.find('丛书')
+    index_7 = info.find('ISBN')
+    # 作者
+    author = info[index_1 + len('作者:'):index_2 - 1].replace('\n', '').replace(
+        ' ', '')
+    print('作者:', author)
+    # 出版社
+    if (index_3 != -1):
+        publisher = info[index_2 + len('出版社:'):index_3 - 1].replace('\n', '')
+        print('出版社:', publisher)
+    else:
+        publisher = info[index_2 + len('出版社:'):index_5 - 1].replace('\n', '')
+        print('出版社:', publisher)
+    # 原作名
+    if (index_3 != -1 and index_4 != -1):
+        origin_name = info[index_3 + len('原作名:'):index_4 - 1].replace('\n', '')
+        print('原作名:', origin_name)
+    # 译者
+    if (index_4 != -1 and index_5 != -1):
+        origin_name = info[index_4 + len('译者:'):index_5 - 1].replace(
+            '\n', '').replace(' ', '')
+        print('译者:', origin_name)
+    if (index_6 != -1):
+        # 丛书
+        origin_name = info[index_6 + len('丛书:'):index_7 - 1].replace(
+            '\n', '').replace(' ', '')
+        print('丛书:', origin_name)
+    # ISBN
+    print('ISBN:', info[index_7 + len('ISBN:'):])
+    detail = soup.find('span', {'class': 'all hidden'})  # 展开简介
+    if (detail is None):  # 不需要展开简介
+        detail = soup.find('span', {'property': 'v:summary'})
+    if (detail is None):  # 其他类型
+        detail = soup.find('div', {'class': 'intro'})
+    detail = detail.text.strip().replace(' ', '')
+    detail = detail.replace('\n\u3000\u3000', '')
+    print('简介:\n', detail)
+    print("=" * 40)
+    pass
+
+
 if __name__ == "__main__":
-    for id in movie_id_data:
-        search_douban_movie(id)
-        delay = random.randint(0, 5)  # 随机间隔0-5s访问
-        time.sleep(delay)
+    # for id in movie_id_data:
+    #     search_douban_movie(id)
+    #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
+    #     time.sleep(delay)
     for id in book_id_data:
-        search_douban_movie(id)
+        search_douban_book(id)
         delay = random.randint(0, 5)  # 随机间隔0-5s访问
-        time.sleep(delay)
+        # time.sleep(delay)
