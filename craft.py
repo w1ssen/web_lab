@@ -97,6 +97,6 @@ def more_info(next_url):
 
 
 if __name__ == "__main__":
-    movie_name = "憨豆先生"
-    # movie_name = input("请输入要搜索的电影名称: ")
+    # movie_name = "憨豆先生"
+    movie_name = input("请输入要搜索的电影名称: ")
     search_douban_movie(movie_name)
