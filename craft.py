@@ -150,11 +150,11 @@ def search_douban_book(id):
 
 
 if __name__ == "__main__":
-    # for id in movie_id_data:
-    #     search_douban_movie(id)
-    #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
-    #     time.sleep(delay)
+    for id in movie_id_data:
+        search_douban_movie(id)
+        delay = random.randint(0, 5)  # 随机间隔0-5s访问
+        time.sleep(delay)
     for id in book_id_data:
         search_douban_book(id)
         delay = random.randint(0, 5)  # 随机间隔0-5s访问
-        # time.sleep(delay)
+        time.sleep(delay)
