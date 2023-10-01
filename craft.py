@@ -225,7 +225,7 @@ def search_douban_book(id):
     print('简介:\n', detail)
     print("=" * 40)
     global book_list
-    book_list.append({"id":id,"name":name,"author":author,"publisher":info[index_2 + len('出版社:'):index_3 - 1].replace('\n', ''),"origin_title":info[index_3 + len('原作名:'):index_4 - 1].replace('\n', ''),"translater":info[index_4 + len('译者:'):index_5 - 1].replace('\n', '').replace(' ', ''),"series":info[index_6 + len('丛书:'):index_7 - 1].replace('\n', '').replace(' ', ''),"ISBN":info[index_7 + len('ISBN:'):],"syno":detail})
+    book_list.append({"id":id,"name":name,"author":author,"publisher":publisher,"origin_title":origin_name,"translater":translator,"year":year,"series":books,"ISBN":info[index_8 + len('ISBN:'):],"syno":detail})
     #信息字典
     pass
 
@@ -236,6 +236,7 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
     publishers = []
     origin_titles = []
     translaters = []
+    years = []
     seriess = []
     ISBNs = []
     synos = []
@@ -247,6 +248,7 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
         publishers.append(data[i]["publisher"])
         origin_titles.append(data[i]["origin_title"])
         translaters.append(data[i]["translater"])
+        years.append(data[i]["year"])
         seriess.append(data[i]["series"])
         ISBNs.append(data[i]["ISBN"])
         synos.append(data[i]["syno"])
@@ -258,6 +260,7 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
         '出版社': publishers,
         '原作名': origin_titles,
         '译者': translaters,
+        '出版年':years,
         '丛书': seriess,
         'ISBN': ISBNs,
         '简介': synos
@@ -268,21 +271,20 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
 
 
 if __name__ == "__main__": 
+    movie_list = [] #字典列表
+    for id in movie_id_data:
+        search_douban_movie(id)
+        os.remove('movie.xlsx')
+        movie_toExcel(movie_list, 'movie.xlsx')
+        delay = random.randint(0, 5)  # 随机间隔0-5s访问
+        time.sleep(delay)
 
     book_list = [] #字典列表
     for id in book_id_data:
         search_douban_book(id)
-        #os.remove('movie.xlsx')
+        os.remove('book.xlsx')
         book_toExcel(book_list, 'book.xlsx')
         delay = random.randint(0, 5)  # 随机间隔0-5s访问
         time.sleep(delay)
 
-
-    movie_list = [] #字典列表
-    for id in movie_id_data:
-        search_douban_movie(id)
-        #os.remove('movie.xlsx')
-        movie_toExcel(movie_list, 'movie.xlsx')
-        delay = random.randint(0, 5)  # 随机间隔0-5s访问
-        time.sleep(delay)
 
