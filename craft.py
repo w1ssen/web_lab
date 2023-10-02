@@ -3,14 +3,15 @@ from bs4 import BeautifulSoup
 import random
 import pandas as pd
 import time
+import os
 
 # 读取Excel文件
-df = pd.read_csv('web_lab-1/Book_id.csv')
+df = pd.read_csv('Book_id.csv')
 # 选择要读取的列
 book_id_data = df['1046265'].tolist()
 book_id_data.insert(0, '1046265')
 
-df = pd.read_csv('web_lab-1/Movie_id.csv')
+df = pd.read_csv('Movie_id.csv')
 movie_id_data = df['1292052'].tolist()
 movie_id_data.insert(0, '1292052')
 delay = random.randint(0, 1200)
@@ -101,6 +102,56 @@ def search_douban_movie(id):
     detail = detail.replace('\n\u3000\u3000', '')
     print('简介:\n', detail)
     print("=" * 40)
+    global movie_list
+    #信息字典
+    movie_list.append({"id":id,"cname":name.split()[0],"ename":' '.join(name.split()[1:]),"year":year[1:5],"rate":rate,"director":info[index_1 + len('导演: '):index_2 - 1],"scr":info[index_2 + len('编剧: '):index_3 - 1],"star":info[index_3 + len('主演: '):index_4 - 1],"type":info[index_4 + len('类型: '):index_5 - 1],"area":info[index_5 + len('制片国家/地区: '):index_6 - 1],"lang":info[index_6 + len('语言: '):index_7],"syno":detail})
+
+def movie_toExcel(data, fileName):  # pandas库储存数据到excel
+    ids = []
+    cnames = []
+    enames = []
+    years = []
+    rates = []
+    directors = []
+    scrs = []
+    stars = []
+    types = []
+    areas = []
+    langs = []
+    synos = []
+
+    for i in range(len(data)):
+        ids.append(data[i]["id"])
+        cnames.append(data[i]["cname"])
+        enames.append(data[i]["ename"])
+        years.append(data[i]["year"])
+        rates.append(data[i]["rate"])
+        directors.append(data[i]["director"])
+        scrs.append(data[i]["scr"])
+        stars.append(data[i]["star"])
+        types.append(data[i]["type"])
+        areas.append(data[i]["area"])
+        langs.append(data[i]["lang"])
+        synos.append(data[i]["syno"])
+ 
+    dfData = {  # 用字典设置DataFrame所需数据
+        '序号': ids,
+        '中文名称': cnames,
+        '英文名称': enames,
+        '年份': years,
+        '评分': rates,
+        '导演': directors,
+        '编剧': scrs,
+        '主演': stars,
+        '类型': types,
+        '制片国家/地区': areas,
+        '语言': langs,
+        '简介': synos
+    }
+    df = pd.DataFrame(dfData)  # 创建DataFrame
+    df.to_excel(fileName, index=False)  # 存表，去除原始索引列（0,1,2...）
+
+
 
 
 def search_douban_book(id):
@@ -173,15 +224,65 @@ def search_douban_book(id):
     detail = detail.replace('\n\u3000\u3000', '')
     print('简介:\n', detail)
     print("=" * 40)
+    global book_list
+    book_list.append({"id":id,"name":name,"author":author,"publisher":info[index_2 + len('出版社:'):index_3 - 1].replace('\n', ''),"origin_title":info[index_3 + len('原作名:'):index_4 - 1].replace('\n', ''),"translater":info[index_4 + len('译者:'):index_5 - 1].replace('\n', '').replace(' ', ''),"series":info[index_6 + len('丛书:'):index_7 - 1].replace('\n', '').replace(' ', ''),"ISBN":info[index_7 + len('ISBN:'):],"syno":detail})
+    #信息字典
     pass
 
+def book_toExcel(data, fileName):  # pandas库储存数据到excel
+    ids = []
+    names = []
+    authors = []
+    publishers = []
+    origin_titles = []
+    translaters = []
+    seriess = []
+    ISBNs = []
+    synos = []
 
-if __name__ == "__main__":
+    for i in range(len(data)):
+        ids.append(data[i]["id"])
+        names.append(data[i]["name"])
+        authors.append(data[i]["author"])
+        publishers.append(data[i]["publisher"])
+        origin_titles.append(data[i]["origin_title"])
+        translaters.append(data[i]["translater"])
+        seriess.append(data[i]["series"])
+        ISBNs.append(data[i]["ISBN"])
+        synos.append(data[i]["syno"])
+ 
+    dfData = {  # 用字典设置DataFrame所需数据
+        '序号': ids,
+        '书名': names,
+        '作者': authors,
+        '出版社': publishers,
+        '原作名': origin_titles,
+        '译者': translaters,
+        '丛书': seriess,
+        'ISBN': ISBNs,
+        '简介': synos
+    }
+    df = pd.DataFrame(dfData)  # 创建DataFrame
+    df.to_excel(fileName, index=False)  # 存表，去除原始索引列（0,1,2...）
+
+
+
+if __name__ == "__main__": 
+
+    book_list = [] #字典列表
+    for id in book_id_data:
+        search_douban_book(id)
+        #os.remove('movie.xlsx')
+        book_toExcel(book_list, 'book.xlsx')
+        delay = random.randint(0, 5)  # 随机间隔0-5s访问
+        time.sleep(delay)
+
+
+    movie_list = [] #字典列表
     for id in movie_id_data:
         search_douban_movie(id)
-    #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
-    #     time.sleep(delay)
-    # for id in book_id_data:
-    #     search_douban_book(id)
-    #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
-    #     time.sleep(delay)
+        #os.remove('movie.xlsx')
+        movie_toExcel(movie_list, 'movie.xlsx')
+        delay = random.randint(0, 5)  # 随机间隔0-5s访问
+        time.sleep(delay)
+
