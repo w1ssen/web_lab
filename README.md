@@ -13,3 +13,5 @@
 10.1 wyz更新craft.py
 
 可以将爬取内容写入excel？
+
+10.2 jieba分词停用词函数 调用示例test.py
