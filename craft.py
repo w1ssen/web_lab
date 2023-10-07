@@ -4,7 +4,9 @@ import random
 import pandas as pd
 import time
 import os
+import urllib3
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # 读取Excel文件
 df = pd.read_csv('Book_id.csv')
 # 选择要读取的列
@@ -28,12 +30,13 @@ ip = random_ip()
 headers = {
     'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
-    'X-Forwarded-For': ip,
+    'X-Forwarded-For':
+    ip,
     'Cookie':
     'bid=HNf-ab2-lJI; gr_user_id=031667b7-5f8a-4ede-b695-e52d9181fe11; __gads=ID=60db1851df53b133:T=1583253085:S=ALNI_MbBwCgmPG1hMoA4-Z0HSw_zcT0a0A; _vwo_uuid_v2=DD32BB6F8D421706DCD1CDE1061FB7A45|ef7ec70304dd2cf132f1c42b3f0610e7; viewed="1200840_27077140_26943161_25779298"; ll="118165"; __yadk_uid=5OpXTOy4NkvMrHZo7Rq6P8VuWvCSmoEe; ct=y; ap_v=0,6.0; push_doumail_num=0; push_noty_num=0; _pk_ref.100001.4cf6=%5B%22%22%2C%22%22%2C1583508410%2C%22https%3A%2F%2Fwww.pypypy.cn%2F%22%5D; _pk_ses.100001.4cf6=*; dbcl2="131182631:x7xeSw+G5a8"; ck=9iia; _pk_id.100001.4cf6=17997f85dc72b3e8.1583492846.4.1583508446.1583505298.',
-    "Connection": "close"
 }
-proxies = {"http": None, "https": None}
+
+# proxies = {"http": None, "https": None}
 
 
 # 给定id搜索电影
@@ -49,8 +52,7 @@ def search_douban_movie(id):
     # 发送HTTP请求并获取页面内容
     response = requests.get(search_url, headers=headers)
     if response.status_code != 200:
-        print("请求失败")
-        time.sleep(60)
+        print("请求失败", response.status_code)
         delay = random.randint(0, 5)  # 随机间隔0-5s访问
         time.sleep(delay)
         search_douban_movie(id)
@@ -210,10 +212,13 @@ def search_douban_book(id):
     # 构造搜索URL
     search_url = f"https://book.douban.com/subject/{id}/"
     # 发送HTTP请求并获取页面内容
-    response = requests.get(search_url, headers=headers, proxies=proxies)
+    response = requests.get(search_url, headers=headers)
     if response.status_code != 200:
-        print("请求失败")
-        time.sleep(60)
+        print("请求失败", response.status_code)
+        print(search_url)
+        delay = random.randint(0, 5)  # 随机间隔0-5s访问
+        time.sleep(delay)
+        search_douban_movie(id)
         return
     # 使用BeautifulSoup解析页面内容
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -303,28 +308,35 @@ def search_douban_book(id):
     })
     # 信息字典
     pass
-    # # 作者简介
-    # # 随机生成IP
-    # ip = random_ip()
-    # # 将IP加入到报头中
-    # headers['X-Forwarded-For'] = ip
-    # url = body.find('div', {'id': 'info'}).a['href']
-    # author_url = f"https://book.douban.com{url}"
-    # delay = random.randint(0, 5)  # 随机间隔0-5s访问
-    # time.sleep(delay)
-    # response = requests.get(author_url,
-    #                         headers=headers,
-    #                         verify=False,
-    #                         proxies=proxies)
-    # if response.status_code != 200:
-    #     print("请求失败")
-    #     return
-    # soup2 = BeautifulSoup(response.text, 'html.parser')
-    # author_info = soup2.find('div', {'id': 'content'})
-    # author_info = author_info.find('div', class_='bd').text.strip()
-    # response.close()
-    # print('\n作者信息:\n', author_info)
-    # print("=" * 40)
+    # 作者简介
+    # 随机生成IP
+    ip = random_ip()
+    # 将IP加入到报头中
+    headers['X-Forwarded-For'] = ip
+    url = body.find('div', {'id': 'info'}).a['href']
+    if (url.find('https') == -1):
+        author_url = f"https://book.douban.com{url}"
+    else:
+        author_url = url
+    delay = random.randint(0, 5)  # 随机间隔0-5s访问
+    time.sleep(delay)
+    response = requests.get(author_url, headers=headers, verify=False)
+    if response.status_code != 200:
+        print("请求失败", response.status_code)
+        return
+    soup2 = BeautifulSoup(response.text, 'html.parser')
+    content = soup2.find('div', {'id': 'intro', 'class': 'mod'})
+    if (content is None):
+        author_info = None
+    else:
+        content = content.find('div', {'class': 'bd'})
+        author_info = content.find('span', {'class': 'all hidden'})  # 展开简介
+        if (author_info is None):  # 不需要展开简介
+            author_info = content
+        author_info = author_info.text.strip()
+        response.close()
+        print('\n作者信息:\n', author_info)
+    print("=" * 40)
 
 
 def book_toExcel(data, fileName):  # pandas库储存数据到excel
@@ -374,6 +386,7 @@ if __name__ == "__main__":
 
     book_list = []  # 字典列表
     for id in book_id_data:
+        id = "4886245"
         search_douban_book(id)
         # os.remove('movie.xlsx')
         book_toExcel(book_list, 'book.xlsx')
