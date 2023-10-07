@@ -54,11 +54,14 @@ def search_douban_movie(id):
     search_url = f"https://movie.douban.com/subject/{id}/"
     # 发送HTTP请求并获取页面内容
     response = requests.get(search_url, headers=headers)
-    if response.status_code != 200:
-        print("请求失败", response.status_code)
-        delay = random.randint(0, 5)  # 随机间隔0-5s访问
-        time.sleep(delay)
-        search_douban_movie(id)
+    for i in range(5):
+        if response.status_code != 200:
+            print("请求失败", response.status_code)
+            delay = random.randint(0, 5)  # 随机间隔0-5s访问
+            time.sleep(delay)
+            response = requests.get(search_url, headers=headers)
+        else:
+            break
         return
     # 使用BeautifulSoup解析页面内容
     soup = BeautifulSoup(response.text, "html.parser")
@@ -221,12 +224,14 @@ def search_douban_book(id):
     search_url = f"https://book.douban.com/subject/{id}/"
     # 发送HTTP请求并获取页面内容
     response = requests.get(search_url, headers=headers)
-    if response.status_code != 200:
-        print("请求失败", response.status_code)
-        print(search_url)
-        delay = random.randint(0, 5)  # 随机间隔0-5s访问
-        time.sleep(delay)
-        search_douban_movie(id)
+    for i in range(5):
+        if response.status_code != 200:
+            print("请求失败", response.status_code)
+            delay = random.randint(0, 5)  # 随机间隔0-5s访问
+            time.sleep(delay)
+            response = requests.get(search_url, headers=headers)
+        else:
+            break
         return
     # 使用BeautifulSoup解析页面内容
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -300,20 +305,6 @@ def search_douban_book(id):
     print("=" * 40)
     response.close()
     pass
-    global book_list
-    book_list.append({
-        "id": id,
-        "name": name,
-        "rate": rate,
-        "author": author,
-        "publisher": publisher,
-        "origin_title": origin_name,
-        "translater": translator,
-        "year": year,
-        "series": books,
-        "ISBN": ISBN,
-        "syno": detail
-    })
     # 信息字典
     pass
     # 作者简介
@@ -345,6 +336,21 @@ def search_douban_book(id):
         response.close()
         print('\n作者信息:\n', author_info)
     print("=" * 40)
+    global book_list
+    book_list.append({
+        "id": id,
+        "name": name,
+        "rate": rate,
+        "author": author,
+        "publisher": publisher,
+        "origin_title": origin_name,
+        "translater": translator,
+        "year": year,
+        "series": books,
+        "ISBN": ISBN,
+        "syno": detail,
+        "authsyno": author_info
+    })
 
 
 def book_toExcel(data, fileName):  # pandas库储存数据到excel
@@ -359,6 +365,7 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
     seriess = []
     ISBNs = []
     synos = []
+    authsynos = []
 
     for i in range(len(data)):
         ids.append(data[i]["id"])
@@ -372,6 +379,7 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
         seriess.append(data[i]["series"])
         ISBNs.append(data[i]["ISBN"])
         synos.append(data[i]["syno"])
+        authsynos.append(data[i]["authsyno"])
 
     dfData = {  # 用字典设置DataFrame所需数据
         '序号': ids,
@@ -384,7 +392,8 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
         '出版年': years,
         '丛书': seriess,
         'ISBN': ISBNs,
-        '简介': synos
+        '简介': synos,
+        '作者简介': authsynos
     }
     df = pd.DataFrame(dfData)  # 创建DataFrame
     df.to_excel(fileName, index=False)  # 存表，去除原始索引列（0,1,2...）
@@ -392,36 +401,27 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
 
 if __name__ == "__main__":
 
-    movie_list = []  # 字典列表
-    count = 0
-    times = 0
-    for id in movie_id_data:
-        if (count < LIST_POSITION * 100):
-            count = count + 1
-            continue
-        if (times >= LIST_SIZE):
-            break
-        times = times + 1
-        search_douban_movie(id)
-        # os.remove('movie.xlsx')
-        movie_toExcel(movie_list, 'movie.xlsx')
-        delay = random.randint(0, 5)  # 随机间隔0-5s访问
-        time.sleep(delay)
-
-    book_list = []  # 字典列表
-    for id in book_id_data:
-        id = "4886245"
-        search_douban_book(id)
-        # os.remove('movie.xlsx')
-        book_toExcel(book_list, 'book.xlsx')
-        delay = random.randint(0, 5)  # 随机间隔0-5s访问
-        time.sleep(delay)
-
     # movie_list = []  # 字典列表
+    # count = 0
+    # times = 0
     # for id in movie_id_data:
-    #     # id = '3543690'  # 指定id
+    #     if (count < LIST_POSITION * 100):
+    #         count = count + 1
+    #         continue
+    #     if (times >= LIST_SIZE):
+    #         break
+    #     times = times + 1
     #     search_douban_movie(id)
     #     # os.remove('movie.xlsx')
     #     movie_toExcel(movie_list, 'movie.xlsx')
     #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
     #     time.sleep(delay)
+
+    book_list = []  # 字典列表
+    for id in book_id_data:
+        # id = "4886245"
+        search_douban_book(id)
+        # os.remove('movie.xlsx')
+        book_toExcel(book_list, 'book.xlsx')
+        delay = random.randint(0, 5)  # 随机间隔0-5s访问
+        time.sleep(delay)
