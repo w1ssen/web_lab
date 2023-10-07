@@ -29,7 +29,7 @@ ip = random_ip()
 # 手动添加的报头，用于规避豆瓣反爬(访问网页返回状态码418)
 headers = {
     'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.47',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
     'X-Forwarded-For': ip,
     'Cookie':
     'bid=HNf-ab2-lJI; gr_user_id=031667b7-5f8a-4ede-b695-e52d9181fe11; __gads=ID=60db1851df53b133:T=1583253085:S=ALNI_MbBwCgmPG1hMoA4-Z0HSw_zcT0a0A; _vwo_uuid_v2=DD32BB6F8D421706DCD1CDE1061FB7A45|ef7ec70304dd2cf132f1c42b3f0610e7; viewed="1200840_27077140_26943161_25779298"; ll="118165"; __yadk_uid=5OpXTOy4NkvMrHZo7Rq6P8VuWvCSmoEe; ct=y; ap_v=0,6.0; push_doumail_num=0; push_noty_num=0; _pk_ref.100001.4cf6=%5B%22%22%2C%22%22%2C1583508410%2C%22https%3A%2F%2Fwww.pypypy.cn%2F%22%5D; _pk_ses.100001.4cf6=*; dbcl2="131182631:x7xeSw+G5a8"; ck=9iia; _pk_id.100001.4cf6=17997f85dc72b3e8.1583492846.4.1583508446.1583505298.',
@@ -113,6 +113,68 @@ def search_douban_movie(id):
     detail = detail.replace('\n\u3000\u3000', '')
     print('简介:\n', detail)
     print("=" * 40)
+    global movie_list
+    #信息字典
+    movie_list.append({
+        "id": id,
+        "cname": name.split()[0],
+        "ename": ' '.join(name.split()[1:]),
+        "year": year[1:5],
+        "rate": rate,
+        "director": info[index_1 + len('导演: '):index_2 - 1],
+        "scr": info[index_2 + len('编剧: '):index_3 - 1],
+        "star": info[index_3 + len('主演: '):index_4 - 1],
+        "type": info[index_4 + len('类型: '):index_5 - 1],
+        "area": info[index_5 + len('制片国家/地区: '):index_6 - 1],
+        "lang": info[index_6 + len('语言: '):index_7],
+        "syno": detail
+    })
+
+
+def movie_toExcel(data, fileName):  # pandas库储存数据到excel
+    ids = []
+    cnames = []
+    enames = []
+    years = []
+    rates = []
+    directors = []
+    scrs = []
+    stars = []
+    types = []
+    areas = []
+    langs = []
+    synos = []
+
+    for i in range(len(data)):
+        ids.append(data[i]["id"])
+        cnames.append(data[i]["cname"])
+        enames.append(data[i]["ename"])
+        years.append(data[i]["year"])
+        rates.append(data[i]["rate"])
+        directors.append(data[i]["director"])
+        scrs.append(data[i]["scr"])
+        stars.append(data[i]["star"])
+        types.append(data[i]["type"])
+        areas.append(data[i]["area"])
+        langs.append(data[i]["lang"])
+        synos.append(data[i]["syno"])
+
+    dfData = {  # 用字典设置DataFrame所需数据
+        '序号': ids,
+        '中文名称': cnames,
+        '英文名称': enames,
+        '年份': years,
+        '评分': rates,
+        '导演': directors,
+        '编剧': scrs,
+        '主演': stars,
+        '类型': types,
+        '制片国家/地区': areas,
+        '语言': langs,
+        '简介': synos
+    }
+    df = pd.DataFrame(dfData)  # 创建DataFrame
+    df.to_excel(fileName, index=False)  # 存表，去除原始索引列（0,1,2...）
 
 
 def search_douban_book(id):
@@ -284,11 +346,19 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
 
 
 if __name__ == "__main__":
-    for id in movie_id_data:
-        search_douban_movie(id)
+
+    book_list = []  # 字典列表
+    for id in book_id_data:
+        search_douban_book(id)
+        # os.remove('movie.xlsx')
+        book_toExcel(book_list, 'book.xlsx')
         delay = random.randint(0, 5)  # 随机间隔0-5s访问
         time.sleep(delay)
-    # for id in book_id_data:
-    #     search_douban_book(id)
-    #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
-    #     time.sleep(delay)
+
+    movie_list = []  # 字典列表
+    for id in movie_id_data:
+        search_douban_movie(id)
+        # os.remove('movie.xlsx')
+        movie_toExcel(movie_list, 'movie.xlsx')
+        delay = random.randint(0, 5)  # 随机间隔0-5s访问
+        time.sleep(delay)
