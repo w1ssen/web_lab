@@ -22,16 +22,23 @@ def random_ip():
 
 
 ip = random_ip()
+
 # 手动添加的报头，用于规避豆瓣反爬(访问网页返回状态码418)
 headers = {
     'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.47',
     'X-Forwarded-For': ip,
+    'Cookie':
+    'bid=HNf-ab2-lJI; gr_user_id=031667b7-5f8a-4ede-b695-e52d9181fe11; __gads=ID=60db1851df53b133:T=1583253085:S=ALNI_MbBwCgmPG1hMoA4-Z0HSw_zcT0a0A; _vwo_uuid_v2=DD32BB6F8D421706DCD1CDE1061FB7A45|ef7ec70304dd2cf132f1c42b3f0610e7; viewed="1200840_27077140_26943161_25779298"; ll="118165"; __yadk_uid=5OpXTOy4NkvMrHZo7Rq6P8VuWvCSmoEe; ct=y; ap_v=0,6.0; push_doumail_num=0; push_noty_num=0; _pk_ref.100001.4cf6=%5B%22%22%2C%22%22%2C1583508410%2C%22https%3A%2F%2Fwww.pypypy.cn%2F%22%5D; _pk_ses.100001.4cf6=*; dbcl2="131182631:x7xeSw+G5a8"; ck=9iia; _pk_id.100001.4cf6=17997f85dc72b3e8.1583492846.4.1583508446.1583505298.',
+    "Connection": "close"
 }
+proxies = {"http": None, "https": None}
 
 
 # 给定id搜索电影
 def search_douban_movie(id):
+    # ID
+    print('ID:', id)
     # 随机生成IP
     ip = random_ip()
     # 将IP加入到报头中
@@ -41,23 +48,25 @@ def search_douban_movie(id):
     # 发送HTTP请求并获取页面内容
     response = requests.get(search_url, headers=headers)
     if response.status_code != 200:
-        print("请求失败")
+        print("请求失败\n\n\n\n\n\n\n\n")
+        delay = random.randint(0, 5)  # 随机间隔0-5s访问
+        time.sleep(delay)
+        search_douban_movie(id)
         return
     # 使用BeautifulSoup解析页面内容
     soup = BeautifulSoup(response.text, "html.parser")
 
     # 提取搜索结果中的电影信息
     # 获取中英文名称
-    # ID
-    print('ID:', id)
 
     temp = soup.find('span', {'property': 'v:itemreviewed'})
     if (temp is not None):
         name = temp.text
         # 截取中文名
         print('中文名称:', name.split()[0])
-        # 截取英文名
-        print('英文名称:', ' '.join(name.split()[1:]))
+        # 截取其他名称
+        if (name.split()[1:] != []):
+            print('其他名称:', ' '.join(name.split()[1:]))
 
     # 获取年份
     temp = soup.find('span', class_='year')
@@ -101,9 +110,13 @@ def search_douban_movie(id):
     detail = detail.replace('\n\u3000\u3000', '')
     print('简介:\n', detail)
     print("=" * 40)
+    response.close()
+    pass
 
 
 def search_douban_book(id):
+    # ID
+    print('ID:', id)
     # 随机生成IP
     ip = random_ip()
     # 将IP加入到报头中
@@ -111,7 +124,7 @@ def search_douban_book(id):
     # 构造搜索URL
     search_url = f"https://book.douban.com/subject/{id}/"
     # 发送HTTP请求并获取页面内容
-    response = requests.get(search_url, headers=headers)
+    response = requests.get(search_url, headers=headers, proxies=proxies)
     if response.status_code != 200:
         print("请求失败")
         return
@@ -120,6 +133,11 @@ def search_douban_book(id):
     body = soup.find('body')
     name = body.find('h1').find('span', {'property': 'v:itemreviewed'}).text
     print("书名:", name)
+    # 获取评分
+    temp = soup.find('strong', {'property': "v:average"})
+    if (temp is not None):
+        rate = temp.text
+        print('评分:', rate)
     info = body.find('div', {'id': 'info'}).text.strip()
     # print(info)
     index_1 = info.find('作者')
@@ -130,8 +148,6 @@ def search_douban_book(id):
     index_6 = info.find('页数')
     index_7 = info.find('丛书')
     index_8 = info.find('ISBN')
-    # ID
-    print('ID:', id)
     # 作者
     author = info[index_1 + len('作者:'):index_2 - 1].replace('\n', '').replace(
         ' ', '')
@@ -173,15 +189,42 @@ def search_douban_book(id):
     detail = detail.replace('\n\u3000\u3000', '')
     print('简介:\n', detail)
     print("=" * 40)
+    response.close()
+    pass
+
+    # 作者简介
+    # 随机生成IP
+    ip = random_ip()
+    # 将IP加入到报头中
+    headers['X-Forwarded-For'] = ip
+    url = body.find('div', {'id': 'info'}).a['href']
+    author_url = f"https://book.douban.com{url}"
+    delay = random.randint(0, 5)  # 随机间隔0-5s访问
+    time.sleep(delay)
+    response = requests.get(author_url,
+                            headers=headers,
+                            verify=False,
+                            proxies=proxies)
+    if response.status_code != 200:
+        print("请求失败")
+        return
+    soup2 = BeautifulSoup(response.text, 'html.parser')
+    author_info = soup2.find('div', {'id': 'content'})
+    author_info = author_info.find('div', class_='bd').text.strip()
+    response.close()
+    print('\n作者信息:\n', author_info)
+    print("=" * 40)
     pass
 
 
 if __name__ == "__main__":
-    for id in movie_id_data:
-        search_douban_movie(id)
+    # for id in movie_id_data:
+    #     # 指定id搜索
+    #     id = '3543690'
+    #     search_douban_movie(id)
     #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
     #     time.sleep(delay)
-    # for id in book_id_data:
-    #     search_douban_book(id)
-    #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
-    #     time.sleep(delay)
+    for id in book_id_data:
+        search_douban_book(id)
+        delay = random.randint(0, 5)  # 随机间隔0-5s访问
+        time.sleep(delay)
