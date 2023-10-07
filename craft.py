@@ -5,7 +5,9 @@ import pandas as pd
 import time
 import os
 
-os.chdir('.\\web_lab-1')
+LIST_POSITION = 0
+LIST_SIZE = 100
+
 
 # 读取Excel文件
 df = pd.read_csv('Book_id.csv')
@@ -173,9 +175,9 @@ def movie_toExcel(data, fileName):  # pandas库储存数据到excel
         '语言': langs,
         '简介': synos
     }
-    df = pd.DataFrame(dfData)  # 创建DataFrame
-    df.to_excel(fileName, index=False)  # 存表，去除原始索引列（0,1,2...）
 
+    df = pd.DataFrame(dfData)  # 创建DataFrame
+    df.to_excel(fileName, index=False,sheet_name="{0}-{1}".format(LIST_POSITION*LIST_SIZE+1,(LIST_POSITION+1)*LIST_SIZE))  # 存表，去除原始索引列（0,1,2...）
 
 def search_douban_book(id):
     # ID
@@ -347,18 +349,26 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
 
 if __name__ == "__main__":
 
+    movie_list = []  # 字典列表
+    count = 0
+    times = 0
+    for id in movie_id_data:
+        if(count < LIST_POSITION * 100):
+            count = count + 1
+            continue
+        if(times >= LIST_SIZE):
+            break
+        times = times + 1
+        search_douban_movie(id)
+        # os.remove('movie.xlsx')
+        movie_toExcel(movie_list, 'movie.xlsx')
+        delay = random.randint(0, 5)  # 随机间隔0-5s访问
+        time.sleep(delay)
+        
     book_list = []  # 字典列表
     for id in book_id_data:
         search_douban_book(id)
         # os.remove('movie.xlsx')
         book_toExcel(book_list, 'book.xlsx')
-        delay = random.randint(0, 5)  # 随机间隔0-5s访问
-        time.sleep(delay)
-
-    movie_list = []  # 字典列表
-    for id in movie_id_data:
-        search_douban_movie(id)
-        # os.remove('movie.xlsx')
-        movie_toExcel(movie_list, 'movie.xlsx')
         delay = random.randint(0, 5)  # 随机间隔0-5s访问
         time.sleep(delay)
