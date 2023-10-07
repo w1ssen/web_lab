@@ -3,14 +3,15 @@ from bs4 import BeautifulSoup
 import random
 import pandas as pd
 import time
+import os
 
 # 读取Excel文件
-df = pd.read_csv('web_lab-1/Book_id.csv')
+df = pd.read_csv('Book_id.csv')
 # 选择要读取的列
 book_id_data = df['1046265'].tolist()
 book_id_data.insert(0, '1046265')
 
-df = pd.read_csv('web_lab-1/Movie_id.csv')
+df = pd.read_csv('Movie_id.csv')
 movie_id_data = df['1292052'].tolist()
 movie_id_data.insert(0, '1292052')
 delay = random.randint(0, 1200)
@@ -110,8 +111,6 @@ def search_douban_movie(id):
     detail = detail.replace('\n\u3000\u3000', '')
     print('简介:\n', detail)
     print("=" * 40)
-    response.close()
-    pass
 
 
 def search_douban_book(id):
@@ -192,6 +191,9 @@ def search_douban_book(id):
     response.close()
     pass
 
+
+'''
+
     # 作者简介
     # 随机生成IP
     ip = random_ip()
@@ -214,17 +216,77 @@ def search_douban_book(id):
     response.close()
     print('\n作者信息:\n', author_info)
     print("=" * 40)
+    global book_list
+    book_list.append({
+        "id":
+        id,
+        "name":
+        name,
+        "author":
+        author,
+        "publisher":
+        info[index_2 + len('出版社:'):index_3 - 1].replace('\n', ''),
+        "origin_title":
+        info[index_3 + len('原作名:'):index_4 - 1].replace('\n', ''),
+        "translater":
+        info[index_4 + len('译者:'):index_5 - 1].replace('\n',
+                                                       '').replace(' ', ''),
+        "series":
+        info[index_6 + len('丛书:'):index_7 - 1].replace('\n',
+                                                       '').replace(' ', ''),
+        "ISBN":
+        info[index_7 + len('ISBN:'):],
+        "syno":
+        detail
+    })
+    #信息字典
     pass
+'''
+
+
+def book_toExcel(data, fileName):  # pandas库储存数据到excel
+    ids = []
+    names = []
+    authors = []
+    publishers = []
+    origin_titles = []
+    translaters = []
+    seriess = []
+    ISBNs = []
+    synos = []
+
+    for i in range(len(data)):
+        ids.append(data[i]["id"])
+        names.append(data[i]["name"])
+        authors.append(data[i]["author"])
+        publishers.append(data[i]["publisher"])
+        origin_titles.append(data[i]["origin_title"])
+        translaters.append(data[i]["translater"])
+        seriess.append(data[i]["series"])
+        ISBNs.append(data[i]["ISBN"])
+        synos.append(data[i]["syno"])
+
+    dfData = {  # 用字典设置DataFrame所需数据
+        '序号': ids,
+        '书名': names,
+        '作者': authors,
+        '出版社': publishers,
+        '原作名': origin_titles,
+        '译者': translaters,
+        '丛书': seriess,
+        'ISBN': ISBNs,
+        '简介': synos
+    }
+    df = pd.DataFrame(dfData)  # 创建DataFrame
+    df.to_excel(fileName, index=False)  # 存表，去除原始索引列（0,1,2...）
 
 
 if __name__ == "__main__":
-    # for id in movie_id_data:
-    #     # 指定id搜索
-    #     id = '3543690'
-    #     search_douban_movie(id)
+    for id in movie_id_data:
+        search_douban_movie(id)
     #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
     #     time.sleep(delay)
-    for id in book_id_data:
-        search_douban_book(id)
-        delay = random.randint(0, 5)  # 随机间隔0-5s访问
-        time.sleep(delay)
+    # for id in book_id_data:
+    #     search_douban_book(id)
+    #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
+    #     time.sleep(delay)
