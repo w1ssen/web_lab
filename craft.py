@@ -5,8 +5,6 @@ import pandas as pd
 import time
 import os
 
-os.chdir('.\\web_lab-1')
-
 # 读取Excel文件
 df = pd.read_csv('Book_id.csv')
 # 选择要读取的列
@@ -51,7 +49,8 @@ def search_douban_movie(id):
     # 发送HTTP请求并获取页面内容
     response = requests.get(search_url, headers=headers)
     if response.status_code != 200:
-        print("请求失败\n\n\n\n\n\n\n\n")
+        print("请求失败")
+        time.sleep(60)
         delay = random.randint(0, 5)  # 随机间隔0-5s访问
         time.sleep(delay)
         search_douban_movie(id)
@@ -66,23 +65,29 @@ def search_douban_movie(id):
     if (temp is not None):
         name = temp.text
         # 截取中文名
-        print('中文名称:', name.split()[0])
+        chinese_name = name.split()[0]
+        print('中文名称:', chinese_name)
         # 截取其他名称
         if (name.split()[1:] != []):
-            print('其他名称:', ' '.join(name.split()[1:]))
-
+            other_name = ' '.join(name.split()[1:])
+            # print('其他名称:', other_name)
+        else:
+            other_name = None
     # 获取年份
     temp = soup.find('span', class_='year')
     if (temp is not None):
-        year = temp.text.strip()
-        print('年份:', year[1:5])
+        year = temp.text.strip()[1:5]
+        # print('年份:', year)
+    else:
+        year = None
 
     # 获取评分
     temp = soup.find('strong', {'property': "v:average"})
     if (temp is not None):
         rate = temp.text
-        print('评分:', rate)
-
+        # print('评分:', rate)
+    else:
+        rate = None
     # 获取其他信息
     info = soup.find('div', {'id': 'info'}).text
 
@@ -95,38 +100,56 @@ def search_douban_movie(id):
     index_6 = info.find('语言: ')
     index_7 = info.find('\n', index_6)
     if (index_1 != -1 and index_2 != -1):
-        print('导演:', info[index_1 + len('导演: '):index_2 - 1])
+        diretor = info[index_1 + len('导演: '):index_2 - 1]
+        # print('导演:', diretor)
+    else:
+        diretor = None
     if (index_2 != -1 and index_3 != -1):
-        print('编剧:', info[index_2 + len('编剧: '):index_3 - 1])
+        scriptwriter = info[index_2 + len('编剧: '):index_3 - 1]
+        # print('编剧:', scriptwriter)
+    else:
+        scriptwriter = None
     if (index_3 != -1 and index_4 != -1):
-        print('主演:', info[index_3 + len('主演: '):index_4 - 1])
+        actor = info[index_3 + len('主演: '):index_4 - 1]
+        # print('主演:', actor)
+    else:
+        actor = None
     if (index_4 != -1 and index_5 != -1):
-        print('类型:', info[index_4 + len('类型: '):index_5 - 1])
+        type = info[index_4 + len('类型: '):index_5 - 1]
+        # print('类型:', type)
+    else:
+        type = None
     if (index_5 != -1 and index_6 != -1):
-        print('制片国家/地区:', info[index_5 + len('制片国家/地区: '):index_6 - 1])
+        area = info[index_5 + len('制片国家/地区: '):index_6 - 1]
+        # print('制片国家/地区:', area)
+    else:
+        area = None
     if (index_6 != -1 and index_7 != -1):
-        print('语言:', info[index_6 + len('语言: '):index_7])
+        language = info[index_6 + len('语言: '):index_7]
+        # print('语言:', language)
+    else:
+        language = None
     detail = soup.find('span', {'class': 'all hidden'})  # 展开简介
     if (detail is None):  # 不需要展开简介
         detail = soup.find('span', {'property': 'v:summary'})
     detail = detail.text.strip().replace(' ', '')
     detail = detail.replace('\n\u3000\u3000', '')
-    print('简介:\n', detail)
+    # print('简介:\n', detail)
     print("=" * 40)
     global movie_list
-    #信息字典
+    # 信息字典
     movie_list.append({
         "id": id,
-        "cname": name.split()[0],
-        "ename": ' '.join(name.split()[1:]),
-        "year": year[1:5],
+        "cname": chinese_name,
+        "ename": other_name,
+        "year": year,
         "rate": rate,
-        "director": info[index_1 + len('导演: '):index_2 - 1],
-        "scr": info[index_2 + len('编剧: '):index_3 - 1],
-        "star": info[index_3 + len('主演: '):index_4 - 1],
-        "type": info[index_4 + len('类型: '):index_5 - 1],
-        "area": info[index_5 + len('制片国家/地区: '):index_6 - 1],
-        "lang": info[index_6 + len('语言: '):index_7],
+        "director": diretor,
+        "scr": scriptwriter,
+        "star": actor,
+        "type": type,
+        "area": area,
+        "lang": language,
         "syno": detail
     })
 
@@ -190,6 +213,7 @@ def search_douban_book(id):
     response = requests.get(search_url, headers=headers, proxies=proxies)
     if response.status_code != 200:
         print("请求失败")
+        time.sleep(60)
         return
     # 使用BeautifulSoup解析页面内容
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -200,7 +224,7 @@ def search_douban_book(id):
     temp = soup.find('strong', {'property': "v:average"})
     if (temp is not None):
         rate = temp.text
-        print('评分:', rate)
+        # print('评分:', rate)
     info = body.find('div', {'id': 'info'}).text.strip()
     # print(info)
     index_1 = info.find('作者')
@@ -214,35 +238,44 @@ def search_douban_book(id):
     # 作者
     author = info[index_1 + len('作者:'):index_2 - 1].replace('\n', '').replace(
         ' ', '')
-    print('作者:', author)
+    # print('作者:', author)
     # 出版社
     if (index_3 != -1):
         publisher = info[index_2 + len('出版社:'):index_3 - 1].replace('\n', '')
-        print('出版社:', publisher)
+        # print('出版社:', publisher)
     else:
         publisher = info[index_2 + len('出版社:'):index_5 - 1].replace('\n', '')
-        print('出版社:', publisher)
+        # print('出版社:', publisher)
     # 原作名
     if (index_3 != -1 and index_4 != -1):
         origin_name = info[index_3 + len('原作名:'):index_4 - 1].replace('\n', '')
-        print('原作名:', origin_name)
+        # print('原作名:', origin_name)
+    else:
+        origin_name = None
     # 译者
     if (index_4 != -1 and index_5 != -1):
         translator = info[index_4 + len('译者:'):index_5 - 1].replace(
             '\n', '').replace(' ', '')
-        print('译者:', translator)
+        # print('译者:', translator)
+    else:
+        translator = None
     # 出版年
     if (index_5 != -1 and index_6 != -1):
         year = info[index_5 + len('出版年:'):index_6 - 1]
-        print('出版年:', year)
+        # print('出版年:', year)
+    else:
+        year = None
     if (index_7 != -1):
         # 丛书
         books = info[index_7 + len('丛书:'):index_8 - 1].replace('\n',
                                                                '').replace(
                                                                    ' ', '')
-        print('丛书:', books)
+        # print('丛书:', books)
+    else:
+        books = None
     # ISBN
-    print('ISBN:', info[index_8 + len('ISBN:'):])
+    ISBN = info[index_8 + len('ISBN:'):]
+    # print('ISBN:', ISBN)
     detail = soup.find('span', {'class': 'all hidden'})  # 展开简介
     if (detail is None):  # 不需要展开简介
         detail = soup.find('span', {'property': 'v:summary'})
@@ -250,71 +283,59 @@ def search_douban_book(id):
         detail = soup.find('div', {'class': 'intro'})
     detail = detail.text.strip().replace(' ', '')
     detail = detail.replace('\n\u3000\u3000', '')
-    print('简介:\n', detail)
+    # print('简介:\n', detail)
     print("=" * 40)
     response.close()
     pass
-
-
-'''
-
-    # 作者简介
-    # 随机生成IP
-    ip = random_ip()
-    # 将IP加入到报头中
-    headers['X-Forwarded-For'] = ip
-    url = body.find('div', {'id': 'info'}).a['href']
-    author_url = f"https://book.douban.com{url}"
-    delay = random.randint(0, 5)  # 随机间隔0-5s访问
-    time.sleep(delay)
-    response = requests.get(author_url,
-                            headers=headers,
-                            verify=False,
-                            proxies=proxies)
-    if response.status_code != 200:
-        print("请求失败")
-        return
-    soup2 = BeautifulSoup(response.text, 'html.parser')
-    author_info = soup2.find('div', {'id': 'content'})
-    author_info = author_info.find('div', class_='bd').text.strip()
-    response.close()
-    print('\n作者信息:\n', author_info)
-    print("=" * 40)
     global book_list
     book_list.append({
-        "id":
-        id,
-        "name":
-        name,
-        "author":
-        author,
-        "publisher":
-        info[index_2 + len('出版社:'):index_3 - 1].replace('\n', ''),
-        "origin_title":
-        info[index_3 + len('原作名:'):index_4 - 1].replace('\n', ''),
-        "translater":
-        info[index_4 + len('译者:'):index_5 - 1].replace('\n',
-                                                       '').replace(' ', ''),
-        "series":
-        info[index_6 + len('丛书:'):index_7 - 1].replace('\n',
-                                                       '').replace(' ', ''),
-        "ISBN":
-        info[index_7 + len('ISBN:'):],
-        "syno":
-        detail
+        "id": id,
+        "name": name,
+        "rate": rate,
+        "author": author,
+        "publisher": publisher,
+        "origin_title": origin_name,
+        "translater": translator,
+        "year": year,
+        "series": books,
+        "ISBN": ISBN,
+        "syno": detail
     })
-    #信息字典
+    # 信息字典
     pass
-'''
+    # # 作者简介
+    # # 随机生成IP
+    # ip = random_ip()
+    # # 将IP加入到报头中
+    # headers['X-Forwarded-For'] = ip
+    # url = body.find('div', {'id': 'info'}).a['href']
+    # author_url = f"https://book.douban.com{url}"
+    # delay = random.randint(0, 5)  # 随机间隔0-5s访问
+    # time.sleep(delay)
+    # response = requests.get(author_url,
+    #                         headers=headers,
+    #                         verify=False,
+    #                         proxies=proxies)
+    # if response.status_code != 200:
+    #     print("请求失败")
+    #     return
+    # soup2 = BeautifulSoup(response.text, 'html.parser')
+    # author_info = soup2.find('div', {'id': 'content'})
+    # author_info = author_info.find('div', class_='bd').text.strip()
+    # response.close()
+    # print('\n作者信息:\n', author_info)
+    # print("=" * 40)
 
 
 def book_toExcel(data, fileName):  # pandas库储存数据到excel
     ids = []
     names = []
+    rates = []
     authors = []
     publishers = []
     origin_titles = []
     translaters = []
+    years = []
     seriess = []
     ISBNs = []
     synos = []
@@ -322,10 +343,12 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
     for i in range(len(data)):
         ids.append(data[i]["id"])
         names.append(data[i]["name"])
+        rates.append(data[i]["rate"])
         authors.append(data[i]["author"])
         publishers.append(data[i]["publisher"])
         origin_titles.append(data[i]["origin_title"])
         translaters.append(data[i]["translater"])
+        years.append(data[i]["year"])
         seriess.append(data[i]["series"])
         ISBNs.append(data[i]["ISBN"])
         synos.append(data[i]["syno"])
@@ -333,10 +356,12 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
     dfData = {  # 用字典设置DataFrame所需数据
         '序号': ids,
         '书名': names,
+        '评分': rates,
         '作者': authors,
         '出版社': publishers,
         '原作名': origin_titles,
         '译者': translaters,
+        '出版年': years,
         '丛书': seriess,
         'ISBN': ISBNs,
         '简介': synos
@@ -355,10 +380,11 @@ if __name__ == "__main__":
         delay = random.randint(0, 5)  # 随机间隔0-5s访问
         time.sleep(delay)
 
-    movie_list = []  # 字典列表
-    for id in movie_id_data:
-        search_douban_movie(id)
-        # os.remove('movie.xlsx')
-        movie_toExcel(movie_list, 'movie.xlsx')
-        delay = random.randint(0, 5)  # 随机间隔0-5s访问
-        time.sleep(delay)
+    # movie_list = []  # 字典列表
+    # for id in movie_id_data:
+    #     # id = '3543690'  # 指定id
+    #     search_douban_movie(id)
+    #     # os.remove('movie.xlsx')
+    #     movie_toExcel(movie_list, 'movie.xlsx')
+    #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
+    #     time.sleep(delay)
