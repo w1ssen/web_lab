@@ -7,7 +7,7 @@ import os
 import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-LIST_POSITION = 0
+LIST_POSITION = 2
 LIST_SIZE = 100
 
 # 读取Excel文件
@@ -324,7 +324,10 @@ def search_douban_book(id):
     ip = random_ip()
     # 将IP加入到报头中
     headers['X-Forwarded-For'] = ip
-    url = body.find('div', {'id': 'info'}).a['href']
+    url = body.find('div', {'id': 'info'})
+    if (url is None):
+        return
+    url = url.a['href']
     if (url.find('https') == -1):
         author_url = f"https://book.douban.com{url}"
     else:
@@ -408,7 +411,11 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
         '作者简介': authsynos
     }
     df = pd.DataFrame(dfData)  # 创建DataFrame
-    df.to_excel(fileName, index=False)  # 存表，去除原始索引列（0,1,2...）
+    df.to_excel(fileName,
+                index=False,
+                sheet_name="{0}-{1}".format(LIST_POSITION * LIST_SIZE + 1,
+                                            (LIST_POSITION + 1) *
+                                            LIST_SIZE))  # 存表，去除原始索引列（0,1,2...）
 
 
 if __name__ == "__main__":
@@ -440,7 +447,7 @@ if __name__ == "__main__":
         if (times >= LIST_SIZE):
             break
         times = times + 1
-        # id = "1767388"
+        # id = "2160556"
         search_douban_book(id)
         # os.remove('movie.xlsx')
         book_toExcel(book_list, 'book.xlsx')
