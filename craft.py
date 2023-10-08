@@ -20,6 +20,7 @@ df = pd.read_csv('Movie_id.csv')
 movie_id_data = df['1292052'].tolist()
 movie_id_data.insert(0, '1292052')
 delay = random.randint(0, 1200)
+wrong_id = []
 
 
 def random_ip():
@@ -234,18 +235,20 @@ def search_douban_book(id):
             delay = random.randint(0, 5)  # 随机间隔0-5s访问
             time.sleep(delay)
             response = requests.get(search_url, headers=headers)
+            wrong_id.append(id)
         else:
             break
         return
     # 使用BeautifulSoup解析页面内容
     soup = BeautifulSoup(response.text, 'html.parser')
     body = soup.find('body')
-    name = body.find('h1').find('span', {'property': 'v:itemreviewed'})
-    if (name is None):
+    h1 = body.find('h1')
+    if (h1 is None):
         print('错误页面\n')
         return
     else:
-        name = name.text
+        name = body.find('span', {'property': 'v:itemreviewed'})
+    name = name.text
     print("书名:", name)
     # 获取评分
     temp = soup.find('strong', {'property': "v:average"})
@@ -343,8 +346,8 @@ def search_douban_book(id):
             author_info = content
         author_info = author_info.text.strip()
         response.close()
-        print('\n作者信息:\n', author_info)
-    print("=" * 40)
+        # print('\n作者信息:\n', author_info)
+    # print("=" * 40)
     global book_list
     book_list.append({
         "id": id,
@@ -410,28 +413,37 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
 
 if __name__ == "__main__":
 
-    movie_list = []  # 字典列表
+    # movie_list = []  # 字典列表
+    # count = 0
+    # times = 0
+    # for id in movie_id_data:
+    #     if (count < LIST_POSITION * 100):
+    #         count = count + 1
+    #         continue
+    #     if (times >= LIST_SIZE):
+    #         break
+    #     times = times + 1
+    #     # id = "1310174"
+    #     search_douban_movie(id)
+    #     # os.remove('movie.xlsx')
+    #     movie_toExcel(movie_list, 'movie.xlsx')
+    #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
+    #     time.sleep(delay)
+
+    book_list = []  # 字典列表
     count = 0
     times = 0
-    for id in movie_id_data:
+    for id in book_id_data:
         if (count < LIST_POSITION * 100):
             count = count + 1
             continue
         if (times >= LIST_SIZE):
             break
         times = times + 1
-        # id = "1310174"
-        search_douban_movie(id)
+        # id = "1767388"
+        search_douban_book(id)
         # os.remove('movie.xlsx')
-        movie_toExcel(movie_list, 'movie.xlsx')
+        book_toExcel(book_list, 'book.xlsx')
         delay = random.randint(0, 5)  # 随机间隔0-5s访问
         time.sleep(delay)
-
-    # book_list = []  # 字典列表
-    # for id in book_id_data:
-    #     # id = "4886245"
-    #     search_douban_book(id)
-    #     # os.remove('movie.xlsx')
-    #     book_toExcel(book_list, 'book.xlsx')
-    #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
-    #     time.sleep(delay)
+    print("错误id", wrong_id)
