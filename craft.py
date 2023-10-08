@@ -52,6 +52,7 @@ def search_douban_movie(id):
     headers['X-Forwarded-For'] = ip
     # 构造搜索URL
     search_url = f"https://movie.douban.com/subject/{id}/"
+    print(search_url)
     # 发送HTTP请求并获取页面内容
     response = requests.get(search_url, headers=headers)
     for i in range(5):
@@ -82,6 +83,9 @@ def search_douban_movie(id):
         else:
             other_name = None
     # 获取年份
+    else:
+        print("空页面\n")
+        return
     temp = soup.find('span', class_='year')
     if (temp is not None):
         year = temp.text.strip()[1:5]
@@ -401,27 +405,28 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
 
 if __name__ == "__main__":
 
-    # movie_list = []  # 字典列表
-    # count = 0
-    # times = 0
-    # for id in movie_id_data:
-    #     if (count < LIST_POSITION * 100):
-    #         count = count + 1
-    #         continue
-    #     if (times >= LIST_SIZE):
-    #         break
-    #     times = times + 1
-    #     search_douban_movie(id)
-    #     # os.remove('movie.xlsx')
-    #     movie_toExcel(movie_list, 'movie.xlsx')
-    #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
-    #     time.sleep(delay)
-
-    book_list = []  # 字典列表
-    for id in book_id_data:
-        # id = "4886245"
-        search_douban_book(id)
+    movie_list = []  # 字典列表
+    count = 0
+    times = 0
+    for id in movie_id_data:
+        if (count < LIST_POSITION * 100):
+            count = count + 1
+            continue
+        if (times >= LIST_SIZE):
+            break
+        times = times + 1
+        # id = "1310174"
+        search_douban_movie(id)
         # os.remove('movie.xlsx')
-        book_toExcel(book_list, 'book.xlsx')
+        movie_toExcel(movie_list, 'movie.xlsx')
         delay = random.randint(0, 5)  # 随机间隔0-5s访问
         time.sleep(delay)
+
+    # book_list = []  # 字典列表
+    # for id in book_id_data:
+    #     # id = "4886245"
+    #     search_douban_book(id)
+    #     # os.remove('movie.xlsx')
+    #     book_toExcel(book_list, 'book.xlsx')
+    #     delay = random.randint(0, 5)  # 随机间隔0-5s访问
+    #     time.sleep(delay)
