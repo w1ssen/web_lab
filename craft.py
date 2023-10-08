@@ -240,7 +240,12 @@ def search_douban_book(id):
     # 使用BeautifulSoup解析页面内容
     soup = BeautifulSoup(response.text, 'html.parser')
     body = soup.find('body')
-    name = body.find('h1').find('span', {'property': 'v:itemreviewed'}).text
+    name = body.find('h1').find('span', {'property': 'v:itemreviewed'})
+    if (name is None):
+        print('错误页面\n')
+        return
+    else:
+        name = name.text
     print("书名:", name)
     # 获取评分
     temp = soup.find('strong', {'property': "v:average"})
