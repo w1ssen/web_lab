@@ -266,11 +266,15 @@ def search_douban_book(id):
     index_7 = info.find('丛书')
     index_8 = info.find('ISBN')
     # 作者
-    author = info[index_1 + len('作者:'):index_2 - 1].replace('\n', '').replace(
-        ' ', '')
+    if (index_1 != -1 and index_2 != -1):
+        author = info[index_1 + len('作者:'):index_2 - 1].replace('\n',
+                                                                '').replace(
+                                                                    ' ', '')
+    else:
+        author = None
     # print('作者:', author)
     # 出版社
-    if (index_3 != -1):
+    if (index_2 != -1 and index_3 != -1):
         publisher = info[index_2 + len('出版社:'):index_3 - 1].replace('\n', '')
         # print('出版社:', publisher)
     else:
@@ -326,6 +330,8 @@ def search_douban_book(id):
     headers['X-Forwarded-For'] = ip
     url = body.find('div', {'id': 'info'})
     if (url is None):
+        return
+    if (author is None):
         return
     url = url.a['href']
     if (url.find('https') == -1):
@@ -447,7 +453,7 @@ if __name__ == "__main__":
         if (times >= LIST_SIZE):
             break
         times = times + 1
-        # id = "2160556"
+        id = "2160556"
         search_douban_book(id)
         # os.remove('movie.xlsx')
         book_toExcel(book_list, 'book.xlsx')
