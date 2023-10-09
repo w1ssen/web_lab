@@ -330,34 +330,33 @@ def search_douban_book(id):
     # 将IP加入到报头中
     headers['X-Forwarded-For'] = ip
     url = body.find('div', {'id': 'info'})
-    if (url is None):
-        return
-    if (author is None):
-        return
-    url = url.a['href']
-    if (url.find('https') == -1):
-        author_url = f"https://book.douban.com{url}"
-    else:
-        author_url = url
-    delay = random.randint(0, 5)  # 随机间隔0-5s访问
-    time.sleep(delay)
-    response = requests.get(author_url, headers=headers, verify=False)
-    if response.status_code != 200:
-        print("请求失败", response.status_code)
-        return
-    soup2 = BeautifulSoup(response.text, 'html.parser')
-    content = soup2.find('div', {'id': 'intro', 'class': 'mod'})
-    if (content is None):
-        author_info = None
-    else:
-        content = content.find('div', {'class': 'bd'})
-        author_info = content.find('span', {'class': 'all hidden'})  # 展开简介
-        if (author_info is None):  # 不需要展开简介
-            author_info = content
-        author_info = author_info.text.strip()
-        response.close()
+    if (url is not None and author is not None):
+        url = url.a['href']
+        if (url.find('https') == -1):
+            author_url = f"https://book.douban.com{url}"
+        else:
+            author_url = url
+        delay = random.randint(0, 5)  # 随机间隔0-5s访问
+        time.sleep(delay)
+        response = requests.get(author_url, headers=headers, verify=False)
+        if response.status_code != 200:
+            print("请求失败", response.status_code)
+            return
+        soup2 = BeautifulSoup(response.text, 'html.parser')
+        content = soup2.find('div', {'id': 'intro', 'class': 'mod'})
+        if (content is None):
+            author_info = None
+        else:
+            content = content.find('div', {'class': 'bd'})
+            author_info = content.find('span', {'class': 'all hidden'})  # 展开简介
+            if (author_info is None):  # 不需要展开简介
+                author_info = content
+            author_info = author_info.text.strip()
+            response.close()
         # print('\n作者信息:\n', author_info)
     # print("=" * 40)
+    else:
+        author_info = None
     global book_list
     book_list.append({
         "id": id,
@@ -454,7 +453,7 @@ if __name__ == "__main__":
         if (times >= LIST_SIZE):
             break
         times = times + 1
-        # id = "1205372"
+        id = "2160556"
         search_douban_book(id)
         # os.remove('movie.xlsx')
         book_toExcel(book_list, 'book.xlsx')
