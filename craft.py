@@ -315,8 +315,9 @@ def search_douban_book(id):
         detail = soup.find('span', {'property': 'v:summary'})
     if (detail is None):  # 其他类型
         detail = soup.find('div', {'class': 'intro'})
-    detail = detail.text.strip().replace(' ', '')
-    detail = detail.replace('\n\u3000\u3000', '')
+    if (detail is not None):
+        detail = detail.text.strip().replace(' ', '')
+        detail = detail.replace('\n\u3000\u3000', '')
     # print('简介:\n', detail)
     print("=" * 40)
     response.close()
@@ -453,7 +454,7 @@ if __name__ == "__main__":
         if (times >= LIST_SIZE):
             break
         times = times + 1
-        id = "2160556"
+        id = "1205372"
         search_douban_book(id)
         # os.remove('movie.xlsx')
         book_toExcel(book_list, 'book.xlsx')
