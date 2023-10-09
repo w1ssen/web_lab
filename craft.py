@@ -454,7 +454,7 @@ if __name__ == "__main__":
         if (times >= LIST_SIZE):
             break
         times = times + 1
-        id = "1205372"
+        # id = "1205372"
         search_douban_book(id)
         # os.remove('movie.xlsx')
         book_toExcel(book_list, 'book.xlsx')
