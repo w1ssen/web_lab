@@ -7,7 +7,7 @@ import os
 import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-LIST_POSITION = 2
+LIST_POSITION = 905
 LIST_SIZE = 100
 
 # 读取Excel文件
@@ -213,8 +213,7 @@ def movie_toExcel(data, fileName):  # pandas库储存数据到excel
     df = pd.DataFrame(dfData)  # 创建DataFrame
     df.to_excel(fileName,
                 index=False,
-                sheet_name="{0}-{1}".format(LIST_POSITION * LIST_SIZE + 1,
-                                            (LIST_POSITION + 1) *
+                sheet_name="{0}-{1}".format(LIST_POSITION, LIST_POSITION +
                                             LIST_SIZE))  # 存表，去除原始索引列（0,1,2...）
 
 
@@ -419,8 +418,7 @@ def book_toExcel(data, fileName):  # pandas库储存数据到excel
     df = pd.DataFrame(dfData)  # 创建DataFrame
     df.to_excel(fileName,
                 index=False,
-                sheet_name="{0}-{1}".format(LIST_POSITION * LIST_SIZE + 1,
-                                            (LIST_POSITION + 1) *
+                sheet_name="{0}-{1}".format(LIST_POSITION, LIST_POSITION +
                                             LIST_SIZE))  # 存表，去除原始索引列（0,1,2...）
 
 
@@ -447,13 +445,12 @@ if __name__ == "__main__":
     count = 0
     times = 0
     for id in book_id_data:
-        if (count < LIST_POSITION * 100):
+        if (count < LIST_POSITION):
             count = count + 1
             continue
         if (times >= LIST_SIZE):
             break
         times = times + 1
-        id = "2160556"
         search_douban_book(id)
         # os.remove('movie.xlsx')
         book_toExcel(book_list, 'book.xlsx')
