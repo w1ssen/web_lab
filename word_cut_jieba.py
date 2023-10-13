@@ -1,3 +1,4 @@
+from tyc import tyc
 import jieba
 import re
 
@@ -25,6 +26,13 @@ def word_cut0(mytext):
     for word in seg_list_exact:
         if word not in stop_words and len(word) > 1:
             result_list.append(word) 
+            
+    #print(result_list)
     
-    return result_list
+    #print(tyc(result_list))
+    
+    new_list = list(set(tyc(result_list)))
+    new_list.sort(key = tyc(result_list).index)
+    
+    return new_list
 
