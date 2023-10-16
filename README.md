@@ -35,4 +35,4 @@
 
 添加读写表格用的python文件 add_info,有注释，需要读写表格可以直接修改它来使用
 
-添加生成倒排表并写入excel表格的python文件，倒排表存储进movie_list.xlsx,book_list.xlsx
+添加生成倒排表并写入excel表格的python文件inverted_index_to_excel，倒排表存储进movie_list.xlsx,book_list.xlsx
