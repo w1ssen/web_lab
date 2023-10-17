@@ -24,10 +24,11 @@ def create_inverted_index():
         keywords = keys[i].split(',')  # 将每个id的关键词用逗号切割，变成一个列表变量
         for item in keywords:  # 遍历id的每个关键词
             if item not in Inverted_Index:
-                Inverted_Index[item] = []  # 不在倒排表中的关键词新建列表
-            Inverted_Index[item].append(ids[i])  # 在倒排表对应的关键词位置添加id
+                Inverted_Index[item] = set()  # 不在倒排表中的关键词新建集合
+            Inverted_Index[item].add(ids[i])  # 在倒排表对应的关键词位置添加id
     for item in Inverted_Index:
         id_list.append({'key': item, 'id': Inverted_Index[item]})
+    print(Inverted_Index)
 
 
 def list_to_excel():

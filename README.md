@@ -36,3 +36,7 @@
 添加读写表格用的python文件 add_info,有注释，需要读写表格可以直接修改它来使用
 
 添加生成倒排表并写入excel表格的python文件inverted_index_to_excel，倒排表存储进movie_list.xlsx,book_list.xlsx
+
+10.17 添加python文件keyword_search，实现bool检索，对检索结果(id)输出相关信息，检索模式(书籍/电影)可以手动输入也可以指定，检索语句可以手动输入或指定，检索语句优先级从高到低依次是括号，NOT AND OR，经过了一定的测试，但是也不保熟
+
+修改倒排表的数据类型为set集合，方便取NOT AND OR

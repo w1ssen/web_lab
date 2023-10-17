@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 
 df_movie_data = pd.read_excel('movie.xlsx').fillna('')
 df_book_data = pd.read_excel('book.xlsx').fillna('')
@@ -28,7 +29,7 @@ book_list_id = df_book_list['ID'].tolist()
 # 打印搜索得到的ids的相关信息
 def print_movie_info(ids):
     for id in ids:
-        index = movie_id.find(id)  # 找到id的index
+        index = movie_id.index(id)  # 找到id的index
         print('ID:', id)
         print('电影名称:', movie_name[index])
         print('电影评分:', movie_rate[index])
@@ -54,27 +55,100 @@ def input_to_keywords(input):
 
 # 电影倒排表检索
 def search_in_movielist(keywords):
-    ids = []
+    ids = set()
     for keyword in keywords:
         if (keyword in movie_list_key):
             index = movie_list_key.index(keyword)
         else:
             last_keyword = keyword
             continue
-        add_ids = movie_list_id[index]
+        add_ids = set(movie_list_id[index])
+        add_ids = eval(movie_list_id[index])
+        # print(add_ids)
+        # print(type(add_ids))
         if ids:
             # 对结果集进行 AND 或 OR 操作
-            if last_keyword == 'AND':
-                pass
-            elif last_keyword == 'OR':
-                # 合并两个列表并删除重复项
-                ids = list(set(ids + add_ids))
-
-                # 如果需要，将集合转换回列表
-                ids = list(ids)
+            if last_keyword == 'OR':
+                ids = ids.union(add_ids)
+            elif last_keyword == 'AND':
+                ids = ids.intersection(add_ids)
+            elif last_keyword == "NOT":
+                ids = ids.difference(add_ids)
         else:
             ids = add_ids
     print(ids)
+    # print_movie_info(ids)
+
+
+# def search_in_movielist(search_input):
+#     # 使用正则表达式来分割查询字符串
+#     tokens = re.split(r'(\(|\)|AND|OR|NOT)', search_input)
+
+#     # 定义布尔操作的函数
+#     def intersection(posting1, posting2):
+#         return set(posting1) & set(posting2)
+
+#     def union(posting1, posting2):
+#         return set(posting1) | set(posting2)
+
+#     def negation(posting):
+#         all_docs = set(movie_list_key)
+#         return all_docs - set(posting)
+
+#     stack = []
+#     operator_stack = []
+
+#     for token in tokens:
+#         token = token.strip()
+#         if token.strip() == "":
+#             continue
+#         if token == "(":
+#             operator_stack.append(token)
+#         elif token == ")":
+#             while operator_stack and operator_stack[-1] != "(":
+#                 operator = operator_stack.pop()
+#                 if operator == "AND":
+#                     operand2 = stack.pop()
+#                     operand1 = stack.pop()
+#                     stack.append(intersection(operand1, operand2))
+#                 elif operator == "OR":
+#                     operand2 = stack.pop()
+#                     operand1 = stack.pop()
+#                     stack.append(union(operand1, operand2))
+#         elif token == "AND" or token == "OR":
+#             while operator_stack and operator_stack[-1] in (
+#                     "AND", "OR") and operator_stack[-1] != "(":
+#                 operator = operator_stack.pop()
+#                 operand2 = stack.pop()
+#                 operand1 = stack.pop()
+#                 if operator == "AND":
+#                     stack.append(intersection(operand1, operand2))
+#                 elif operator == "OR":
+#                     stack.append(union(operand1, operand2))
+#             operator_stack.append(token)
+#         elif token == "NOT":
+#             operator_stack.append(token)
+#         else:
+#             # 处理关键词
+#             if token in movie_list_key:
+#                 index = movie_list_key.index(token)
+#                 stack.append(eval(movie_list_id[index]))
+#             else:
+#                 stack.append(set())  # 未知词的结果为空集
+
+#     while operator_stack:
+#         operator = operator_stack.pop()
+#         if operator == "AND" or operator == "OR":
+#             operand2 = stack.pop()
+#             operand1 = stack.pop()
+#             if operator == "AND":
+#                 stack.append(intersection(operand1, operand2))
+#             elif operator == "OR":
+#                 stack.append(union(operand1, operand2))
+#         elif operator == "NOT":
+#             operand = stack.pop()
+#             stack.append(negation(operand))
+#     print(stack[0])
 
 
 # 书籍倒排表检索
@@ -97,7 +171,7 @@ def search_in_booklist(keywords):
 # print('输入搜索关键词')
 search_type = 1
 # search_input = input()
-search_input = '下狱 OR 剧情'
+search_input = '剧情 OR 安迪 AND 下狱'
 keywords = input_to_keywords(search_input)
 if (search_type == 1):
     search_in_movielist(keywords)
