@@ -37,6 +37,12 @@
 
 添加生成倒排表并写入excel表格的python文件inverted_index_to_excel，倒排表存储进movie_list.xlsx,book_list.xlsx
 
-10.17 添加python文件keyword_search，实现bool检索，对检索结果(id)输出相关信息，检索模式(书籍/电影)可以手动输入也可以指定，检索语句可以手动输入或指定，检索语句优先级从高到低依次是括号，NOT AND OR，经过了一定的测试，但是也不保熟
+10.17 jy添加python文件keyword_search，实现bool检索，对检索结果(id)输出相关信息，检索模式(书籍/电影)可以手动输入也可以指定，检索语句可以手动输入或指定，检索语句优先级从高到低依次是括号，NOT AND OR，经过了一定的测试，但是也不保熟
 
 修改倒排表的数据类型为set集合，方便取NOT AND OR
+
+10.29 jy仿照倒排表bool检索movie的方式实现倒排表bool检索book
+
+新增文件inverted_index_zip，用于压缩movie倒排表索引，将压缩后的结果存放至block文件夹中。压缩方式采用分块存储，5个关键词为一个块。压缩后的文件为block_metadata.plk。
+
+并实现利用压缩后的倒排索引表检索的功能，并与顺序检索的用时进行比较(顺序检索排除掉读取excel表格的时间的话，耗时其实更少。但是由于读取25000个关键词占用大量内存，用时很长)。为了方便，后续可能仍旧采用顺序索引的倒排表进行检索
