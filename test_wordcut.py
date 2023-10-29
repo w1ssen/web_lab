@@ -1,8 +1,9 @@
 from word_cut_jieba import word_cut0
+from word_cut_snownlp import word_cut1
 import pandas as pd
 
 # 读取表格文件
-df = pd.read_excel('book.xlsx')
+df = pd.read_excel('book_com.xlsx')
 
 #data = df.iloc[2,11]
 #print(data)
@@ -27,11 +28,17 @@ df = pd.read_excel('book.xlsx')
     #print(', '.join(word_cut0(data)))
 #df.at[1200,'关键词'] = ', '.join(word_cut0(data))
 
-for i in range(0, 1190):
+for i in range(0, 100):
     #print(i)
-    data = df.iloc[i,10]
+    data = df.iloc[i,0]
+    #print('\n\n 原文:')
+    #print(data)
+    #print('\n jieba:')
     #print(', '.join(word_cut0(data)))
-    df.at[i,'关键词'] = ', '.join(word_cut0(data))
+    #print('\n snow:')
+    #print(', '.join(word_cut1(data)))
+    #df.at[i,'jieba'] = ', '.join(word_cut0(data))
+    df.at[i,'snownpl'] = ', '.join(word_cut1(data))
     
 # 输出到Excel文件
-df.to_excel('book.xlsx', index=False)  # index=False表示不保存索引
+df.to_excel('book_com.xlsx', index=False)  # index=False表示不保存索引
