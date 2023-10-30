@@ -246,11 +246,11 @@ book_list = []  # 字典列表
 
 ##### 4.实验结果
 
-部分实验结果如下，全部结果见文件movie.xlsx和文件book.xlsx（部分页面为空页面，直接跳过，故爬取总数不足1200）。
+部分实验结果如下，全部结果见文件part1/data/movie.xlsx和文件part1/data/book.xlsx（部分页面为空页面，直接跳过，故爬取总数不足1200）。
 
-![image-20231030111515139](C:\Users\wyzhou\AppData\Roaming\Typora\typora-user-images\image-20231030111515139.png)
+![image-20231030171146053](.\figs\image-20231030171146053.png)
 
-![image-20231030111539240](C:\Users\wyzhou\AppData\Roaming\Typora\typora-user-images\image-20231030111539240.png)
+![image-20231030171208270](.\figs\image-20231030171208270.png)
 
 ### 二.检索
 
@@ -274,10 +274,10 @@ book_list = []  # 字典列表
 # 获取tag信息，并加入关键词
 import pandas as pd
 # 读取文件存入列表变量
-df1 = pd.read_csv('data/Movie_tag.csv').fillna('')
+df1 = pd.read_csv('part1/data/Movie_tag.csv').fillna('')
 movie_id_1 = df1['Id'].tolist()
 movie_tag = df1['Tag'].tolist()
-df2 = pd.read_excel('data/movie.xlsx').fillna('')
+df2 = pd.read_excel('part1/data/movie.xlsx').fillna('')
 movie_id_2 = df2['序号'].tolist()
 # movie_type = df2['类型'].tolist()
 movie_id_key = df2['关键词'].tolist()
@@ -289,18 +289,315 @@ for i in range(len(movie_id_2)):
     df2.at[i, '关键词'] = movie_id_key[i]
     # print(movie_id_key[index])
 # 写回文件，一定不能忘了这一步
-df2.to_excel('data/movie.xlsx', index=False)
+df2.to_excel('part1/data/movie.xlsx', index=False)
 ```
 
 ##### 2.建立倒排表
 
+在part1/in verted_index_to_excel中，对照获取到的关键词信息，通过pandas读取ID和对应的关键词，构建关键词-ID字典，再将字典写入excel表格。为了方便后续的Bool检索，ID采用集合数据结构。以电影为例：
 
+```python
+import pandas as pd
+
+df1 = pd.read_excel('part1/data/movie.xlsx').fillna('')
+ids = df1['序号'].tolist()
+keys = df1['关键词'].tolist()
+Inverted_Index = dict()
+id_list = []
+
+
+# 创建倒排表
+def create_inverted_index():
+    for i in range(len(keys)):
+        keywords = keys[i].split(',')  # 将每个id的关键词用逗号切割，变成一个列表变量
+        for item in keywords:  # 遍历id的每个关键词
+            if item not in Inverted_Index:
+                Inverted_Index[item] = set()  # 不在倒排表中的关键词新建集合
+            Inverted_Index[item].add(ids[i])  # 在倒排表对应的关键词位置添加id
+    for item in Inverted_Index:
+        id_list.append({'key': item, 'id': Inverted_Index[item]})
+    print(Inverted_Index)
+
+
+def list_to_excel():
+    keys = [item['key'] for item in id_list]
+    ids = [item['id'] for item in id_list]
+    dfData = {'关键词': keys, 'ID': ids}
+    df = pd.DataFrame(dfData)  # 创建 DataFrame
+    df.to_excel('part1/data/movie_list.xlsx', index=False)
+
+
+create_inverted_index()
+list_to_excel()
+```
+
+倒排表结果见part1/data/movie_list和part1/data/book_list
+
+![image-20231030170747442](.\figs\image-20231030170747442.png)
+
+![image-20231030171755887](.\figs\image-20231030171755887.png)
 
 ##### 3.布尔查询
 
+在part1/keyword_search中实现了bool检索。
+
+首先是根据对检索语句进行优先级，关键词的分析。按照bool检索的运算符优先级：括号>NOT>AND>OR，构建关键词栈和运算符栈，先进行高优先级运算符的计算。因为上一步采用了集合的数据结构存储倒排表中的ID，这一步对运算符的处理就可以直接调用集合运算了。
+
+而对于关键词在倒排表中的查找，采用简单的列表查询就好。
+
+```python
+def search_in_movielist(search_input):
+    # 使用正则表达式来分割查询字符串
+    tokens = re.split(r'(\(|\)|AND|OR|NOT)', search_input)
+
+    # 定义布尔操作的函数
+    def intersection(posting1, posting2):
+        return set(posting1) & set(posting2)
+
+    def union(posting1, posting2):
+        return set(posting1) | set(posting2)
+
+    def negation(posting):
+        all_docs = set(movie_list_key)
+        return all_docs - set(posting)
+
+    stack = []
+    operator_stack = []
+
+    for token in tokens:
+        token = token.strip()
+        if token.strip() == "":
+            continue
+        if token == "(":
+            operator_stack.append(token)
+        elif token == ")":
+            while operator_stack and operator_stack[-1] != "(":
+                operator = operator_stack.pop()
+                if operator == "AND":
+                    operand2 = stack.pop()
+                    operand1 = stack.pop()
+                    stack.append(intersection(operand1, operand2))
+                elif operator == "OR":
+                    operand2 = stack.pop()
+                    operand1 = stack.pop()
+                    stack.append(union(operand1, operand2))
+        elif token == "AND" or token == "OR":
+            while operator_stack and operator_stack[-1] in (
+                    "AND", "OR") and operator_stack[-1] != "(":
+                operator = operator_stack.pop()
+                operand2 = stack.pop()
+                operand1 = stack.pop()
+                if operator == "AND":
+                    stack.append(intersection(operand1, operand2))
+                elif operator == "OR":
+                    stack.append(union(operand1, operand2))
+            operator_stack.append(token)
+        elif token == "NOT":
+            operator_stack.append(token)
+        else:
+            # 处理关键词
+            if token in movie_list_key:
+                index = movie_list_key.index(token)
+                stack.append(eval(movie_list_id[index]))
+            else:
+                stack.append(set())  # 未知词的结果为空集
+
+    while operator_stack:
+        operator = operator_stack.pop()
+        if operator == "AND" or operator == "OR":
+            operand2 = stack.pop()
+            operand1 = stack.pop()
+            if operator == "AND":
+                stack.append(intersection(operand1, operand2))
+            elif operator == "OR":
+                stack.append(union(operand1, operand2))
+        elif operator == "NOT":
+            operand = stack.pop()
+            stack.append(negation(operand))
+    print(stack[0])
+    print_movie_info(stack[0])
+```
+
+当找到需要的id后，还需要以合适的形式呈现搜索结果
+
+```python
+# 打印搜索得到的ids的相关信息
+def print_movie_info(ids):
+    for id in ids:
+        index = movie_id.index(id)  # 找到id的index
+        print('ID:', id)
+        print('电影名称:', movie_name[index])
+        print('电影评分:', movie_rate[index])
+        print('电影类型:', movie_type[index])
+        print('电影简介:', movie_info[index])
+        print(40 * "=")
+```
+
+下面是检索结果：
+
+
+
 ##### 4.引索压缩
+
+因为涉及到的关键词多大25000个，这个规模的倒排表如果放在内存里很占用空间，且不利于检索。part1/inverted_index_zip通过分块存储对倒排表进行了压缩。
+
+在这里将100个关键词作为一组。当组满时，生成一个二进制文件存储压缩的倒排表。最后生成一个元数据查询表，将块号和块内存储的关键词记录在元数据查询表中。
+
+```python
+# 每100个关键词为一组，构建压缩索引表
+def zip_inverted_index():
+    # if os.path.exists('part1/data/block_metadata.pkl'):  # 存在压缩的索引表后，不再构建压缩索引表
+    #     return
+    df_movie_list = pd.read_excel('part1/data/movie_list.xlsx').fillna('')
+    movie_list_key = df_movie_list['关键词'].tolist()
+    movie_list_id = df_movie_list['ID'].tolist()
+    block_size = 100  # 块的大小
+    block_number = 0  # 块的编号
+    current_block = {}  # 当前块的倒排索引
+    block_metadata = []  # 存储块的元数据信息
+    for i in range(len(movie_list_id)):
+        keyword = movie_list_key[i]
+        current_block[keyword] = eval(movie_list_id[i])
+        # current_block[keyword].add(eval(movie_list_id[i]))
+        if len(current_block) >= block_size:
+            block_number += 1
+            block_filename = f"part1/block/block_{block_number}.pkl"  # 文件名示例
+            with open(block_filename, 'wb') as block_file:
+                pickle.dump(current_block, block_file)
+            block_metadata.append({
+                'block_number': block_number,
+                'keywords': list(current_block.keys())
+            })
+            current_block = {}
+    for item in current_block:
+        id_list.append({'key': item, 'id': current_block[item]})
+
+    with open('part1/block_metadata.pkl', 'wb') as metadata_file:
+        pickle.dump(block_metadata, metadata_file)
+
+```
+
+下面需要利用压缩的倒排表进行检索。对于关键词keyword，需要遍历元数据查询表，找到后打开对应的块，并返回需要的ID
+
+```python
+# 压缩索引检索
+def search_in_zip(keyword):
+    with open('part1/data/block_metadata.pkl', 'rb') as metadata_file:
+        block_metadata = pickle.load(metadata_file)
+
+    for block_info in block_metadata:
+        block_filename = f"part1/block/block_{block_info['block_number']}.pkl"
+        with open(block_filename, 'rb') as block_file:
+            current_block = pickle.load(block_file)
+            if keyword in current_block:
+                # print(current_block[keyword])
+                return current_block[keyword]
+```
+
+为了体现性能差异，做如下对比
+
+```python
+zip_inverted_index()
+# 检索性能计时,索引压缩
+start_time = time.time()
+# 模拟检索操作
+keyword = "安迪"
+search_in_zip(keyword)
+keyword = "武士刀"
+search_in_zip(keyword)
+keyword = "大屏幕"
+search_in_zip(keyword)
+end_time = time.time()
+elapsed_time = end_time - start_time
+print(f"压缩检索代码运行时间: {elapsed_time} 秒")
+
+# 检索性能计时，非压缩
+
+start_time = time.time()
+# 模拟检索操作
+df_movie_list = pd.read_excel('part1/data/movie_list.xlsx').fillna('')
+movie_list_key = df_movie_list['关键词'].tolist()
+movie_list_id = df_movie_list['ID'].tolist()
+
+keyword = "安迪"
+search_in_list(keyword)
+keyword = "武士刀"
+search_in_list(keyword)
+keyword = "大屏幕"
+search_in_list(keyword)
+end_time = time.time()
+elapsed_time = end_time - start_time
+print(f"顺序检索代码运行时间: {elapsed_time} 秒")
+```
+
+结果如下：
+
+![image-20231030174246161](.\figs\image-20231030174246161.png)
+
+对于在movie倒排表中随机选取的三个关键词，顺序检索花费的时间是远远大于压缩检索的。当检索关键词增多，这个差异会更加显著。而且如果将倒排表整个加载到非常占用空间。而压缩索引后，每次只需要把一个块的数据加载到内存，长期存在于内存中的只有元数据列表，极大地节省了空间。
 
 ## 第二阶段：使用豆瓣数据进行推荐
 
 ## 提交文件说明
+
+```
+├─part1 # 第一阶段
+│  │  add_tag_to_keyword.py # 将Tag加入关键词
+│  │  book_com.xlsx
+│  │  inverted_index_to_excel.py # 创建倒排表并写入表格
+│  │  inverted_index_zip.py # 索引压缩,以及顺序索引和压缩索引的性能对比
+│  │  jyc.txt
+│  │  keyword_search.py # bool检索
+│  │  stop_words.txt
+│  │  test_tyc.py
+│  │  test_wordcut.py
+│  │  tyc.py
+│  │  web_scraper.py # 爬虫，搜集电影书籍信息
+│  │  word_cut_jieba.py
+│  │  word_cut_snownlp.py
+│  │  ~$movie_list.xlsx
+│  │
+│  ├─block # 分块存储得到的二进制文件
+│  └─data # 相关数据
+│          block_metadata.pkl # 压缩后的倒排表
+│          book.xlsx # 书籍的相关信息及关键词
+│          Book_id.csv # 书籍ID
+│          book_list.xlsx # 书籍倒排表
+│          Book_tag.csv # 书籍Tag
+│          movie.xlsx # 电影的相关信息及关键词
+│          Movie_id.csv # 电影ID
+│          movie_list.xlsx # 电影倒排表
+│          Movie_tag.csv # 电影Tag
+│
+├─part2
+│  │  graphrec.py
+│  │  graph_rec_model.py
+│  │  text_embedding.py
+│  │  utils.py
+│  │
+│  └─data
+│          book_score.csv
+│          Contacts.txt
+│          movie_score.csv
+│          selected_book_top_1200_data_tag.csv
+│          selected_movie_top_1200_data_tag.csv
+│          tag_embedding_dict.pkl
+│
+├─report
+│  │  report.md # 报告
+│  │
+│  └─figs #报告中的文件
+├─useless # 中间数据以及一些数据的复制
+│      book.xlsx
+│      book_data.xlsx
+│      movie copy 2.xlsx
+│      movie_data.xlsx
+│      test.xlsx
+│
+└─__pycache__
+        jb.cpython-310.pyc
+        jieba.cpython-310.pyc
+        tyc.cpython-310.pyc
+        word_cut_jieba.cpython-310.pyc
+```
 

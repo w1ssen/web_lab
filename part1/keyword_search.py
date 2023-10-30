@@ -2,10 +2,10 @@ import pandas as pd
 import re
 import time
 
-df_movie_data = pd.read_excel('movie.xlsx').fillna('')
-df_book_data = pd.read_excel('book.xlsx').fillna('')
-df_movie_list = pd.read_excel('movie_list.xlsx').fillna('')
-df_book_list = pd.read_excel('book_list.xlsx').fillna('')
+df_movie_data = pd.read_excel('part1/data/movie.xlsx').fillna('')
+df_book_data = pd.read_excel('part1/data/book.xlsx').fillna('')
+df_movie_list = pd.read_excel('part1/data/movie_list.xlsx').fillna('')
+df_book_list = pd.read_excel('part1/data/book_list.xlsx').fillna('')
 
 movie_id = df_movie_data['序号'].tolist()
 movie_name = df_movie_data['中文名称'].tolist()
@@ -212,10 +212,10 @@ def search_in_booklist(search_input):
 # search_input = input()
 # keywords = input_to_keywords(search_input)
 
-# search_type = 1
-# search_input = '剧情 OR 安迪 AND 下狱'
-search_type = 2
-search_input = '诺贝尔文学奖 AND 苏联'
+search_type = 1
+search_input = '剧情 OR 安迪 AND 下狱'
+# search_type = 2
+# search_input = '诺贝尔文学奖 AND 苏联'
 if (search_type == 1):
     search_in_movielist(search_input)
 else:

@@ -6,7 +6,7 @@ import time
 id_list = []  # 倒排索引
 
 
-# 每五个关键词为一组，构建压缩索引表
+# 每100个关键词为一组，构建压缩索引表
 def zip_inverted_index():
     # if os.path.exists('part1/data/block_metadata.pkl'):  # 存在压缩的索引表后，不再构建压缩索引表
     #     return
@@ -68,9 +68,9 @@ start_time = time.time()
 # 模拟检索操作
 keyword = "安迪"
 search_in_zip(keyword)
-keyword = "剧情"
+keyword = "武士刀"
 search_in_zip(keyword)
-keyword = "下狱"
+keyword = "大屏幕"
 search_in_zip(keyword)
 end_time = time.time()
 elapsed_time = end_time - start_time
@@ -84,11 +84,11 @@ df_movie_list = pd.read_excel('part1/data/movie_list.xlsx').fillna('')
 movie_list_key = df_movie_list['关键词'].tolist()
 movie_list_id = df_movie_list['ID'].tolist()
 
-keyword = "安迪OR剧情OR下狱"
+keyword = "安迪"
 search_in_list(keyword)
-keyword = "剧情"
+keyword = "武士刀"
 search_in_list(keyword)
-keyword = "下狱"
+keyword = "大屏幕"
 search_in_list(keyword)
 end_time = time.time()
 elapsed_time = end_time - start_time
