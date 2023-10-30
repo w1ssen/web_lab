@@ -12,18 +12,18 @@ Jieba库包含许多功能，如分词、词性标注、自定义词典、关键
 def word_cut0(mytext):
     #jieba.load_userdict('exception.txt')  
     jieba.initialize()  # 初始化jieba
-    
+  
     # 文本预处理 ：去除字符剩下中文
     new_data = re.findall('[\u4e00-\u9fa5]+', mytext, re.S)
     new_data = " ".join(new_data)
-    
+  
     # 分词
     seg_list_exact = jieba.lcut(new_data)
     result_list = []
-    
+  
 	…… 
-          
-    
+        
+  
     return new_list
 ```
 
@@ -38,18 +38,18 @@ def word_cut1(mytext):
     #s = SnowNLP(u'SnowNLP类似NLTK，是针对中文处理的一个Python工具库。')
     #words = s.words
     #print(words)
-    
+  
     # 文本预处理 ：去除字符剩下中文
     new_data = re.findall('[\u4e00-\u9fa5]+', mytext, re.S)
     new_data = " ".join(new_data)
-    
+  
     # 分词
     s = SnowNLP(new_data)
     words = s.words
     result_list = []
-    
+  
 	…… 
-            
+          
     return new_list
 ```
 
@@ -93,7 +93,7 @@ def tyc(string1):
         #print(num)
         for i in range(1, num):
             combine_dict[seperate_word[i]] = seperate_word[0]
-            
+          
 
     # 将分词以/为间隔合并
     #seg_list = jieba.lcut(string1, cut_all = False)
@@ -120,14 +120,6 @@ def tyc(string1):
     new_list.sort(key = tyc(result_list).index)	#  保持原来顺序
 ```
 
-
-
-
-
-
-
-
-
 Jieba中文含义结巴，jieba库是目前做的最好的python分词组件。首先它的安装十分便捷，只需要使用pip安装；其次，它不需要另外下载其它的数据包，在这一点上它比其余五款分词工具都要便捷。另外，jieba库支持的文本编码方式为utf-8。
 
 Jieba库包含许多功能，如分词、词性标注、自定义词典、关键词提取。基于jieba的关键词提取有两种常用算法，一是TF-IDF算法；二是TextRank算法。基于jieba库的分词，包含三种分词模式：
@@ -136,13 +128,9 @@ Jieba库包含许多功能，如分词、词性标注、自定义词典、关键
 - **全模式**：把句子中所有的可以成词的词语都扫描出来, 速度非常快，但是不能解决歧义）；
 - **搜索引擎模式**：搜索引擎模式，在精确模式的基础上，对长词再次切分，提高召回率，适合用于搜索引擎分词。
 
-
-
 SnowNLP是一个python写的类库，可以方便的处理中文文本内容，是受到了TextBlob的启发而写的，由于现在大部分的自然语言处理库基本都是针对英文的，于是写了一个方便处理中文的类库，并且和TextBlob不同的是，这里没有用NLTK，所有的算法都是自己实现的，并且自带了一些训练好的字典。注意本程序都是处理的unicode编码，所以使用时请自行decode成unicode。简单来说，snownlp是一个中文的自然语言处理的Python库，snownlp主要功能有：中文分词、词性标注、情感分析、文本分类、转换成拼音、繁体转简体、提取文本关键词、提取文本摘要、tf，idf、Tokenization、文本相似。
 
 总结：snowNLP库的情感分析模块，使用非常方便，功能也很丰富。
-
-
 
 ![image-20231029204151474](C:\Users\w1ssen\web_lab\image\image-20231029204151474.png)
 

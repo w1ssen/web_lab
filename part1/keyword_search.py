@@ -30,6 +30,8 @@ book_list_id = df_book_list['ID'].tolist()
 # 打印搜索得到的ids的相关信息
 def print_movie_info(ids):
     for id in ids:
+        if (id == ''):
+            continue
         index = movie_id.index(id)  # 找到id的index
         print('ID:', id)
         print('电影名称:', movie_name[index])
@@ -63,7 +65,7 @@ def search_in_movielist(search_input):
         return set(posting1) | set(posting2)
 
     def negation(posting):
-        all_docs = set(movie_list_key)
+        all_docs = set(movie_id)
         return all_docs - set(posting)
 
     stack = []
@@ -78,7 +80,10 @@ def search_in_movielist(search_input):
         elif token == ")":
             while operator_stack and operator_stack[-1] != "(":
                 operator = operator_stack.pop()
-                if operator == "AND":
+                if operator == 'NOT':
+                    operand = stack.pop()
+                    stack.append(negation(operand))
+                elif operator == "AND":
                     operand2 = stack.pop()
                     operand1 = stack.pop()
                     stack.append(intersection(operand1, operand2))
@@ -86,6 +91,8 @@ def search_in_movielist(search_input):
                     operand2 = stack.pop()
                     operand1 = stack.pop()
                     stack.append(union(operand1, operand2))
+        elif token == "NOT":
+            operator_stack.append(token)
         elif token == "AND" or token == "OR":
             while operator_stack and operator_stack[-1] in (
                     "AND", "OR") and operator_stack[-1] != "(":
@@ -97,13 +104,16 @@ def search_in_movielist(search_input):
                 elif operator == "OR":
                     stack.append(union(operand1, operand2))
             operator_stack.append(token)
-        elif token == "NOT":
-            operator_stack.append(token)
+
         else:
             # 处理关键词
             if token in movie_list_key:
                 index = movie_list_key.index(token)
-                stack.append(eval(movie_list_id[index]))
+                if (len(operator_stack) > 0 and operator_stack[-1] == 'NOT'):
+                    operator_stack.pop()
+                    stack.append(negation(eval(movie_list_id[index])))
+                else:
+                    stack.append(eval(movie_list_id[index]))
             else:
                 stack.append(set())  # 未知词的结果为空集
 
@@ -119,7 +129,7 @@ def search_in_movielist(search_input):
         elif operator == "NOT":
             operand = stack.pop()
             stack.append(negation(operand))
-    print(stack[0])
+    # print(stack[0])
     print_movie_info(stack[0])
 
 
@@ -136,7 +146,7 @@ def search_in_booklist(search_input):
         return set(posting1) | set(posting2)
 
     def negation(posting):
-        all_docs = set(book_list_key)
+        all_docs = set(book_id)
         return all_docs - set(posting)
 
     stack = []
@@ -151,7 +161,10 @@ def search_in_booklist(search_input):
         elif token == ")":
             while operator_stack and operator_stack[-1] != "(":
                 operator = operator_stack.pop()
-                if operator == "AND":
+                if operator == 'NOT':
+                    operand = stack.pop()
+                    stack.append(negation(operand))
+                elif operator == "AND":
                     operand2 = stack.pop()
                     operand1 = stack.pop()
                     stack.append(intersection(operand1, operand2))
@@ -159,6 +172,8 @@ def search_in_booklist(search_input):
                     operand2 = stack.pop()
                     operand1 = stack.pop()
                     stack.append(union(operand1, operand2))
+        elif token == "NOT":
+            operator_stack.append(token)
         elif token == "AND" or token == "OR":
             while operator_stack and operator_stack[-1] in (
                     "AND", "OR") and operator_stack[-1] != "(":
@@ -170,13 +185,16 @@ def search_in_booklist(search_input):
                 elif operator == "OR":
                     stack.append(union(operand1, operand2))
             operator_stack.append(token)
-        elif token == "NOT":
-            operator_stack.append(token)
+
         else:
             # 处理关键词
             if token in book_list_key:
                 index = book_list_key.index(token)
-                stack.append(eval(book_list_id[index]))
+                if (len(operator_stack) > 0 and operator_stack[-1] == 'NOT'):
+                    operator_stack.pop()
+                    stack.append(negation(eval(book_list_id[index])))
+                else:
+                    stack.append(eval(book_list_id[index]))
             else:
                 stack.append(set())  # 未知词的结果为空集
 
@@ -192,31 +210,32 @@ def search_in_booklist(search_input):
         elif operator == "NOT":
             operand = stack.pop()
             stack.append(negation(operand))
-    print(stack[0])
+    # print(stack[0])
     print_book_info(stack[0])
 
 
-# while (1):
-#     print('选择检索类型：电影/书籍:')
-#     answer = input()
-#     search_type = 0
-#     if (answer == '电影'):
-#         search_type = 1
-#         break
-#     elif (answer == '书籍'):
-#         search_type = 2
-#         break
-#     else:
-#         print('输入错误')
-# print('输入搜索关键词')
-# search_input = input()
-# keywords = input_to_keywords(search_input)
+while (1):
+    print('选择检索类型：电影/书籍:')
+    answer = input()
+    search_type = 0
+    if (answer == '电影'):
+        search_type = 1
+        break
+    elif (answer == '书籍'):
+        search_type = 2
+        break
+    else:
+        print('输入错误')
+print('输入搜索关键词')
+search_input = input()
 
-search_type = 1
-search_input = '剧情 OR 安迪 AND 下狱'
+# search_type = 1
+# search_input = '剧情 OR 安迪 AND 下狱'
+
 # search_type = 2
 # search_input = '诺贝尔文学奖 AND 苏联'
 if (search_type == 1):
     search_in_movielist(search_input)
 else:
     search_in_booklist(search_input)
+

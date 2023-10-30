@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from torch import nn
 from tqdm import tqdm
-from part2.utils import collate_fn
+from utils import collate_fn
 from graph_rec_model import GraphRec
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
@@ -38,7 +38,7 @@ device
 '''
 
 # 读loaded_data取保存的 CSV 文件
-loaded_data = pd.read_csv('data\\book_score.csv')
+loaded_data = pd.read_csv('part2\\data\\book_score.csv')
 
 # 显示加载的数据
 print(loaded_data)
@@ -144,7 +144,7 @@ for book, group in tqdm(grouped_book):
 contact = {}
 
 # 打开文件并读取内容
-with open('data\Contacts.txt', 'r') as f:
+with open('part2\data\Contacts.txt', 'r') as f:
     for line in f:
         # 分割每一行的内容
         user, friends = line.strip().split(':')

@@ -8,8 +8,8 @@ id_list = []  # 倒排索引
 
 # 每100个关键词为一组，构建压缩索引表
 def zip_inverted_index():
-    # if os.path.exists('part1/data/block_metadata.pkl'):  # 存在压缩的索引表后，不再构建压缩索引表
-    #     return
+    if os.path.exists('part1/data/block_metadata.pkl'):  # 存在压缩的索引表后，不再构建压缩索引表
+        return
     df_movie_list = pd.read_excel('part1/data/movie_list.xlsx').fillna('')
     movie_list_key = df_movie_list['关键词'].tolist()
     movie_list_id = df_movie_list['ID'].tolist()
@@ -34,7 +34,7 @@ def zip_inverted_index():
     for item in current_block:
         id_list.append({'key': item, 'id': current_block[item]})
 
-    with open('part1/block_metadata.pkl', 'wb') as metadata_file:
+    with open('part1/data/block_metadata.pkl', 'wb') as metadata_file:
         pickle.dump(block_metadata, metadata_file)
 
 

@@ -268,6 +268,152 @@ book_list = []  # 字典列表
 
 ##### 1.分词
 
+1、jieba分词
+
+jieba库是目前做的最好的python分词组件。首先它的安装十分便捷，只需要使用pip安装；其次，它不需要另外下载其它的数据包，在这一点上它比其余五款分词工具都要便捷。另外，jieba库支持的文本编码方式为utf-8。
+
+Jieba库包含许多功能，如分词、词性标注、自定义词典、关键词提取。基于jieba的关键词提取有两种常用算法，一是TF-IDF算法；二是TextRank算法。基于jieba库的分词，包含三种分词模式：
+
+- **精准模式**：试图将句子最精确地切开，适合文本分析）；
+- **全模式**：把句子中所有的可以成词的词语都扫描出来, 速度非常快，但是不能解决歧义）；
+- **搜索引擎模式**：搜索引擎模式，在精确模式的基础上，对长词再次切分，提高召回率，适合用于搜索引擎分词。
+
+```python
+def word_cut0(mytext):
+    #jieba.load_userdict('exception.txt')  
+    jieba.initialize()  # 初始化jieba
+  
+    # 文本预处理 ：去除字符剩下中文
+    new_data = re.findall('[\u4e00-\u9fa5]+', mytext, re.S)
+    new_data = " ".join(new_data)
+  
+    # 分词
+    seg_list_exact = jieba.lcut(new_data)
+    result_list = []
+  
+	…… 
+        
+  
+    return new_list
+```
+
+2、SnowNLP
+
+是一个python写的类库，可以方便的处理中文文本内容，是受到了TextBlob的启发而写的，由于现在大部分的自然语言处理库基本都是针对英文的，于是写了一个方便处理中文的类库，并且和TextBlob不同的是，这里没有用NLTK，所有的算法都是自己实现的，并且自带了一些训练好的字典。注意本程序都是处理的unicode编码，所以使用时请自行decode成unicode。简单来说，snownlp是一个中文的自然语言处理的Python库，snownlp主要功能有：中文分词、词性标注、情感分析、文本分类、转换成拼音、繁体转简体、提取文本关键词、提取文本摘要、tf，idf、Tokenization、文本相似。
+
+总结：snowNLP库的情感分析模块，使用非常方便，功能也很丰富。
+
+```python
+def word_cut1(mytext):
+    #s = SnowNLP(u'SnowNLP类似NLTK，是针对中文处理的一个Python工具库。')
+    #words = s.words
+    #print(words)
+  
+    # 文本预处理 ：去除字符剩下中文
+    new_data = re.findall('[\u4e00-\u9fa5]+', mytext, re.S)
+    new_data = " ".join(new_data)
+  
+    # 分词
+    s = SnowNLP(new_data)
+    words = s.words
+    result_list = []
+  
+	…… 
+          
+    return new_list
+```
+
+3、效果对比
+
+【图片】
+
+可以看到两个分词工具效果差异不大。但是对于特定意思的长词汇，比如混血王子、第六部、狼图腾、中华文明、龙的传人、巴黎圣母院，snownlp工具就会把它们拆开，所以最终选用jieba工具。
+
+比较结果输出在part1/data/book_com.xlsx
+
+4、去停用词
+
+```python
+    # 加载停用词表
+    with open('stop_words.txt', encoding='utf-8') as f:
+        con = f.readlines()
+        stop_words = set()
+        for i in con:
+            i = i.replace("\n", "")   # 去掉每一行的\n
+            stop_words.add(i)
+
+    # 去除停用词 去除单字
+    for word in seg_list_exact:
+        if word not in stop_words and len(word) > 1:
+            result_list.append(word) 
+```
+
+5、去同义词
+
+```python
+def tyc(string1):
+    # txt是同义词表，每行是一系列同义词，用 分割
+    # 读取同义词表：并生成一个字典。
+    combine_dict = {}
+    for line in open("jyc.txt", "r", encoding='utf-8'):
+        #print(line)
+        seperate_word = line.strip().split(" ")
+        #print(seperate_word)
+        num = len(seperate_word)
+        #print(num)
+        for i in range(1, num):
+            combine_dict[seperate_word[i]] = seperate_word[0]
+          
+
+    # 将分词以/为间隔合并
+    #seg_list = jieba.lcut(string1, cut_all = False)
+    #print(seg_list)
+    #f = "/".join(string1)  
+    #print (f)
+
+    str0 = []
+    strlen = len(string1)
+    for j in range(0, strlen):
+        if string1[j] in combine_dict:
+            str0.append(combine_dict[string1[j]])
+        else:
+            str0.append(string1[j])
+
+    # print final_sentence
+    return str0
+```
+
+主函数中调用：
+
+```python
+	new_list = list(set(tyc(result_list)))
+    new_list.sort(key = tyc(result_list).index)	#  保持原来顺序
+```
+
+Jieba中文含义结巴，jieba库是目前做的最好的python分词组件。首先它的安装十分便捷，只需要使用pip安装；其次，它不需要另外下载其它的数据包，在这一点上它比其余五款分词工具都要便捷。另外，jieba库支持的文本编码方式为utf-8。
+
+Jieba库包含许多功能，如分词、词性标注、自定义词典、关键词提取。基于jieba的关键词提取有两种常用算法，一是TF-IDF算法；二是TextRank算法。基于jieba库的分词，包含三种分词模式：
+
+- **精准模式**：试图将句子最精确地切开，适合文本分析）；
+- **全模式**：把句子中所有的可以成词的词语都扫描出来, 速度非常快，但是不能解决歧义）；
+- **搜索引擎模式**：搜索引擎模式，在精确模式的基础上，对长词再次切分，提高召回率，适合用于搜索引擎分词。
+
+SnowNLP是一个python写的类库，可以方便的处理中文文本内容，是受到了TextBlob的启发而写的，由于现在大部分的自然语言处理库基本都是针对英文的，于是写了一个方便处理中文的类库，并且和TextBlob不同的是，这里没有用NLTK，所有的算法都是自己实现的，并且自带了一些训练好的字典。注意本程序都是处理的unicode编码，所以使用时请自行decode成unicode。简单来说，snownlp是一个中文的自然语言处理的Python库，snownlp主要功能有：中文分词、词性标注、情感分析、文本分类、转换成拼音、繁体转简体、提取文本关键词、提取文本摘要、tf，idf、Tokenization、文本相似。
+
+总结：snowNLP库的情感分析模块，使用非常方便，功能也很丰富。
+
+![image-20231029204151474](.\figs\image-20231029204151474.png)
+
+![image-20231029204246708](.\figs\image-20231029204246708.png)
+
+![image-20231029205108763](.\figs\image-20231029205108763.png)
+
+可以看到两个分词工具效果差异不大。但是对于特定意思的长词汇，比如混血王子、第六部、狼图腾、中华文明、龙的传人、巴黎圣母院，snownlp工具就会把它们拆开，所以最终选用jieba工具。
+
+比较结果输出在part1/data/book_com.xlsx
+
+6.添加Tag
+
 在对电影简介/书籍简介分词结束写入表格后，part1/add_tag_to_key将提供的Tag也加入到关键词。下面以添加电影Tag为例：
 
 ```python
@@ -341,7 +487,7 @@ list_to_excel()
 
 在part1/keyword_search中实现了bool检索。
 
-首先是根据对检索语句进行优先级，关键词的分析。按照bool检索的运算符优先级：括号>NOT>AND>OR，构建关键词栈和运算符栈，先进行高优先级运算符的计算。因为上一步采用了集合的数据结构存储倒排表中的ID，这一步对运算符的处理就可以直接调用集合运算了。
+首先是根据对检索语句进行优先级，关键词的分析。按照bool检索的运算符优先级：括号>NOT>AND=OR，构建关键词栈和运算符栈，先进行高优先级运算符的计算。在这里不考虑AND和OR的优先级差异，默认输入会通过括号来规避优先级问题。因为上一步采用了集合的数据结构存储倒排表中的ID，这一步对运算符的处理就可以直接调用集合运算了。
 
 而对于关键词在倒排表中的查找，采用简单的列表查询就好。
 
@@ -358,7 +504,7 @@ def search_in_movielist(search_input):
         return set(posting1) | set(posting2)
 
     def negation(posting):
-        all_docs = set(movie_list_key)
+        all_docs = set(movie_id)
         return all_docs - set(posting)
 
     stack = []
@@ -373,7 +519,10 @@ def search_in_movielist(search_input):
         elif token == ")":
             while operator_stack and operator_stack[-1] != "(":
                 operator = operator_stack.pop()
-                if operator == "AND":
+                if operator == 'NOT':
+                    operand = stack.pop()
+                    stack.append(negation(operand))
+                elif operator == "AND":
                     operand2 = stack.pop()
                     operand1 = stack.pop()
                     stack.append(intersection(operand1, operand2))
@@ -381,6 +530,8 @@ def search_in_movielist(search_input):
                     operand2 = stack.pop()
                     operand1 = stack.pop()
                     stack.append(union(operand1, operand2))
+        elif token == "NOT":
+            operator_stack.append(token)
         elif token == "AND" or token == "OR":
             while operator_stack and operator_stack[-1] in (
                     "AND", "OR") and operator_stack[-1] != "(":
@@ -392,13 +543,16 @@ def search_in_movielist(search_input):
                 elif operator == "OR":
                     stack.append(union(operand1, operand2))
             operator_stack.append(token)
-        elif token == "NOT":
-            operator_stack.append(token)
+
         else:
             # 处理关键词
             if token in movie_list_key:
                 index = movie_list_key.index(token)
-                stack.append(eval(movie_list_id[index]))
+                if (len(operator_stack) > 0 and operator_stack[-1] == 'NOT'):
+                    operator_stack.pop()
+                    stack.append(negation(eval(movie_list_id[index])))
+                else:
+                    stack.append(eval(movie_list_id[index]))
             else:
                 stack.append(set())  # 未知词的结果为空集
 
@@ -414,7 +568,7 @@ def search_in_movielist(search_input):
         elif operator == "NOT":
             operand = stack.pop()
             stack.append(negation(operand))
-    print(stack[0])
+    # print(stack[0])
     print_movie_info(stack[0])
 ```
 
@@ -433,9 +587,21 @@ def print_movie_info(ids):
         print(40 * "=")
 ```
 
-下面是检索结果：
+下面是对学号对应的电影的检索结果：
 
+分别选取排名为9,22,27的三部电影
 
+![image-20231030194225907](.\figs\image-20231030194225907.png)
+
+![image-20231030195647971](.\figs\image-20231030195647971.png)
+
+![image-20231030195705833](.\figs\image-20231030195705833.png)
+
+![image-20231030202531376](.\figs\image-20231030202531376.png)
+
+![image-20231030193300418](.\figs\image-20231030193300418.png)
+
+![image-20231030193953368](.\figs\image-20231030193953368.png)
 
 ##### 4.引索压缩
 
@@ -543,31 +709,36 @@ print(f"顺序检索代码运行时间: {elapsed_time} 秒")
 ```
 ├─part1 # 第一阶段
 │  │  add_tag_to_keyword.py # 将Tag加入关键词
-│  │  book_com.xlsx
 │  │  inverted_index_to_excel.py # 创建倒排表并写入表格
 │  │  inverted_index_zip.py # 索引压缩,以及顺序索引和压缩索引的性能对比
-│  │  jyc.txt
-│  │  keyword_search.py # bool检索
-│  │  stop_words.txt
+│  │  jyc.txt # 近义词
+│  │  keyword_search.py # 利用倒排表bool检索
+│  │  stop_words.txt # 停用词
 │  │  test_tyc.py
 │  │  test_wordcut.py
-│  │  tyc.py
+│  │  tyc.py # 同义词
 │  │  web_scraper.py # 爬虫，搜集电影书籍信息
-│  │  word_cut_jieba.py
-│  │  word_cut_snownlp.py
-│  │  ~$movie_list.xlsx
+│  │  word_cut_jieba.py #jieba分词
+│  │  word_cut_snownlp.py #snownlp分词
 │  │
-│  ├─block # 分块存储得到的二进制文件
-│  └─data # 相关数据
-│          block_metadata.pkl # 压缩后的倒排表
-│          book.xlsx # 书籍的相关信息及关键词
-│          Book_id.csv # 书籍ID
-│          book_list.xlsx # 书籍倒排表
-│          Book_tag.csv # 书籍Tag
-│          movie.xlsx # 电影的相关信息及关键词
-│          Movie_id.csv # 电影ID
-│          movie_list.xlsx # 电影倒排表
-│          Movie_tag.csv # 电影Tag
+│  ├─block # 分块存储得到的二进制文件(里面有250个文件)
+│  ├─data # 相关数据
+│  │      block_metadata.pkl # 压缩后的倒排表
+│  │      book.xlsx # 书籍的相关信息及关键词
+│  │      book_com.xlsx # 两种分词的比较
+│  │      Book_id.csv # 书籍ID
+│  │      book_list.xlsx # 书籍倒排表
+│  │      Book_tag.csv # 书籍Tag
+│  │      movie.xlsx # 电影的相关信息及关键词
+│  │      Movie_id.csv # 电影ID
+│  │      movie_list.xlsx # 电影倒排表
+│  │      Movie_tag.csv # 电影Tag
+│  │
+│  └─__pycache__
+│          jb.cpython-310.pyc
+│          jieba.cpython-310.pyc
+│          tyc.cpython-310.pyc
+│          word_cut_jieba.cpython-310.pyc
 │
 ├─part2
 │  │  graphrec.py
@@ -575,29 +746,28 @@ print(f"顺序检索代码运行时间: {elapsed_time} 秒")
 │  │  text_embedding.py
 │  │  utils.py
 │  │
-│  └─data
-│          book_score.csv
-│          Contacts.txt
-│          movie_score.csv
-│          selected_book_top_1200_data_tag.csv
-│          selected_movie_top_1200_data_tag.csv
-│          tag_embedding_dict.pkl
+│  ├─data
+│  │      book_score.csv
+│  │      movie_score.csv
+│  │      selected_book_top_1200_data_tag.csv
+│  │      selected_movie_top_1200_data_tag.csv
+│  │      tag_embedding_dict.pkl
+│  │
+│  └─__pycache__
+│          graph_rec_model.cpython-39.pyc
+│          utils.cpython-39.pyc
 │
 ├─report
-│  │  report.md # 报告
+│  │  report.md
 │  │
-│  └─figs #报告中的文件
-├─useless # 中间数据以及一些数据的复制
-│      book.xlsx
-│      book_data.xlsx
-│      movie copy 2.xlsx
-│      movie_data.xlsx
-│      test.xlsx
+│  └─figs # 报告中的图像
 │
-└─__pycache__
-        jb.cpython-310.pyc
-        jieba.cpython-310.pyc
-        tyc.cpython-310.pyc
-        word_cut_jieba.cpython-310.pyc
+└─useless # 中间数据以及一些数据的复制
+        book.xlsx
+        book_data.xlsx
+        movie copy 2.xlsx
+        movie_data.xlsx
+        test.xlsx
+        ~$movie_list.xlsx
 ```
 

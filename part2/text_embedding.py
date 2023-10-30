@@ -19,7 +19,7 @@ model = BertModel.from_pretrained('bert-base-chinese').cuda()
 
 # 读取和处理CSV文件中的数据，并使用BERT模型对标签进行编码，最终将编码后的标签向量保存为二进制文件。
 # 使用pandas库的`read_csv`函数从CSV文件中读取数据，并将其存储在`loaded_data`变量中。
-loaded_data = pd.read_csv('data\selected_book_top_1200_data_tag.csv')
+loaded_data = pd.read_csv('part2\data\selected_book_top_1200_data_tag.csv')
 # 创建一个空字典，用于存储标签的向量表示。
 tag_embedding_dict = {}
 # 在此代码块中，禁用梯度计算，以提高代码的运行效率。
@@ -42,15 +42,15 @@ with torch.no_grad():
 import pickle
 
 # 将映射表存储为二进制文件
-with open('data/tag_embedding_dict.pkl', 'wb') as f:
+with open('part2/data/tag_embedding_dict.pkl', 'wb') as f:
     pickle.dump(tag_embedding_dict, f)
 
 # 从二进制文件中读取映射表
-with open('data/tag_embedding_dict.pkl', 'rb') as f:
+with open('part2/data/tag_embedding_dict.pkl', 'rb') as f:
     tag_embedding_dict = pickle.load(f)
 
 # 读loaded_data取保存的 CSV 文件
-loaded_data = pd.read_csv('data\\book_score.csv')
+loaded_data = pd.read_csv('part2\\data\\book_score.csv')
 
 # 显示加载的数据
 print(loaded_data)
