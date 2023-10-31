@@ -57,7 +57,7 @@ model = MatrixFactorization(num_users, num_books, embedding_dim,
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-num_epochs = 20
+num_epochs = 5
 lambda_u, lambda_b = 0.001, 0.001
 
 for epoch in range(num_epochs):

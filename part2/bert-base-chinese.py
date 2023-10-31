@@ -38,6 +38,7 @@ with torch.no_grad():
         tag_embedding = outputs.last_hidden_state.mean(dim=1).cpu()
         tag_embedding_dict[rows.Book] = tag_embedding
 
+'''
 import pickle
 
 # 将映射表存储为二进制文件
@@ -47,6 +48,19 @@ with open('part2/data/tag_embedding_dict.pkl', 'wb') as f:
 # 从二进制文件中读取映射表
 with open('part2/data/tag_embedding_dict.pkl', 'rb') as f:
     tag_embedding_dict = pickle.load(f)
+'''
+
+# pickle输出大文件会有bug，改用joblib
+import joblib
+
+with open('data/tag_embedding_dict.pkl', 'wb') as f:  # 打开保存的文件夹
+    joblib.dump(tag_embedding_dict, f)
+    f.close()
+
+
+with open('data/tag_embedding_dict.pkl', 'rb') as f:  # 读取pickle文件
+    tag_embedding_dict = joblib.load(f)
+    f.close()
 
 # 读loaded_data取保存的 CSV 文件
 loaded_data = pd.read_csv('part2\\data\\book_score.csv')

@@ -33,7 +33,7 @@ class BookRatingDataset(Dataset):
         text_embedding = self.tag_embedding_dict.get(row['Book'])
         return user, book, rating, text_embedding
 
-
+'''
 class MatrixFactorization(nn.Module):
 
     def __init__(self, num_users, num_books, embedding_dim, hidden_state):
@@ -49,6 +49,34 @@ class MatrixFactorization(nn.Module):
         tag_embedding_proj = self.linear_embedding(tag_embedding)
         book_intergrate = book_embedding + tag_embedding_proj
         return (user_embedding * book_intergrate).sum(dim=1)
+'''
+
+class MatrixFactorization(nn.Module):
+    def __init__(self, num_users, num_books, embedding_dim, hidden_dim):
+        super(MatrixFactorization, self).__init__()
+        self.user_embeddings = nn.Embedding(num_users, embedding_dim)
+        self.book_embeddings = nn.Embedding(num_books, embedding_dim)
+        self.linear_embedding = nn.Linear(hidden_dim, embedding_dim)
+        # self.output = nn.Linear(embedding_dim, 6)
+        self.mlp = nn.Sequential(
+            nn.Linear(embedding_dim * 2, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, 1)
+        )
+
+    def forward(self, user, book, tag_embedding):
+        user_embedding = self.user_embeddings(user)
+        book_embedding = self.book_embeddings(book)
+        tag_embedding_proj = self.linear_embedding(tag_embedding)
+        book_intergrate = book_embedding + tag_embedding_proj
+        
+        concatenated = torch.cat((user_embedding, book_intergrate), dim = 1)
+        predict = self.mlp(concatenated)
+        return predict
+        
+        # return (user_embedding * book_intergrate).sum(dim = 1)
 
 
 def create_id_mapping(id_list):
