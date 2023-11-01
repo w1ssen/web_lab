@@ -147,6 +147,7 @@ for epoch in range(num_epochs):
 
             # 将这三个 arrays 合并成一个 2D array
             batch_results = np.column_stack((user_ids_np, pred_ratings_np, true_ratings_np))
+            # print((user_ids_np, pred_ratings_np, true_ratings_np))
 
             # 将这个 2D array 添加到 results
             results.append(batch_results)
