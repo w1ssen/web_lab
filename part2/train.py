@@ -7,6 +7,9 @@ from tqdm import tqdm
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
+import warnings
+
+warnings.filterwarnings('ignore')
 
 # print(torch.cuda.is_available())
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -89,32 +92,38 @@ for epoch in range(num_epochs):
     output_loss_train = total_loss_train / (idx + 1)
     print(f'Epoch {epoch}, Train loss: {output_loss_train}')
 
-results = []
-model.eval()
+    results = []
+    model.eval()
 
-with torch.no_grad():
-    for idx, (user_ids, item_ids, true_ratings,
-              tag_embedding) in enumerate(test_dataloader):
-        pred_ratings = model(user_ids.to(device), item_ids.to(device),
-                             tag_embedding.squeeze(1).to(device))
+    with torch.no_grad():
+        for idx, (user_ids, item_ids, true_ratings,
+                  tag_embedding) in enumerate(test_dataloader):
+            pred_ratings = model(user_ids.to(device), item_ids.to(device),
+                                 tag_embedding.squeeze(1).to(device))
 
-        # 将结果转换为 numpy arrays
-        user_ids_np = user_ids.long().cpu().numpy().reshape(-1, 1)
-        pred_ratings_np = pred_ratings.cpu().numpy().reshape(-1, 1)
-        true_ratings_np = true_ratings.numpy().reshape(-1, 1)
+            loss = criterion(pred_ratings, ratings.to(device))
+            total_loss_test += loss.item()
 
-        # 将这三个 arrays 合并成一个 2D array
-        batch_results = np.column_stack(
-            (user_ids_np, pred_ratings_np, true_ratings_np))
+            # 将结果转换为 numpy arrays
+            user_ids_np = user_ids.long().cpu().numpy().reshape(-1, 1)
+            pred_ratings_np = pred_ratings.cpu().numpy().reshape(-1, 1)
+            true_ratings_np = true_ratings.numpy().reshape(-1, 1)
 
-        # 将这个 2D array 添加到 results
-        results.append(batch_results)
+            # 将这三个 arrays 合并成一个 2D array
+            batch_results = np.column_stack(
+                (user_ids_np, pred_ratings_np, true_ratings_np))
 
-    # 将结果的 list 转换为一个大的 numpy array
-    results = np.vstack(results)
+            # 将这个 2D array 添加到 results
+            results.append(batch_results)
 
-    # 将结果转换为DataFrame
-    results_df = pd.DataFrame(results, columns=['user', 'pred', 'true'])
-    results_df['user'] = results_df['user'].astype(int)
-    outputpath = '.\part2\points.csv'
-    results_df.to_csv(outputpath, sep=',', index=False, header=True)
+        # 将结果的 list 转换为一个大的 numpy array
+        results = np.vstack(results)
+
+        print(f'Epoch {epoch}, Test loss:, {total_loss_test / (idx + 1)}')
+
+        # 将结果转换为DataFrame
+        results_df = pd.DataFrame(results, columns=['user', 'pred', 'true'])
+        results_df['user'] = results_df['user'].astype(int)
+
+outputpath = '.\part2\points.csv'
+results_df.to_csv(outputpath, sep=',', index=False, header=True)

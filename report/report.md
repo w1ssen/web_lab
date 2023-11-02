@@ -325,11 +325,13 @@ def word_cut1(mytext):
 
 3、效果对比
 
-【图片】
+![image-20231029204151474](.\figs\image-20231029204151474.png)
 
-可以看到两个分词工具效果差异不大。但是对于特定意思的长词汇，比如混血王子、第六部、狼图腾、中华文明、龙的传人、巴黎圣母院，snownlp工具就会把它们拆开，所以最终选用jieba工具。
+![image-20231029204246708](.\figs\image-20231029204246708.png)
 
-比较结果输出在part1/data/book_com.xlsx
+![image-20231029205108763](.\figs\image-20231029205108763.png)可以看到两个分词工具效果差异不大。但是对于特定意思的长词汇，比如混血王子、第六部、狼图腾、中华文明、龙的传人、巴黎圣母院，snownlp工具就会把它们拆开，所以最终选用jieba工具。
+
+比较结果输出在part1/data/book_com.xlsx。
 
 4、去停用词
 
@@ -390,27 +392,7 @@ def tyc(string1):
     new_list.sort(key = tyc(result_list).index)	#  保持原来顺序
 ```
 
-Jieba中文含义结巴，jieba库是目前做的最好的python分词组件。首先它的安装十分便捷，只需要使用pip安装；其次，它不需要另外下载其它的数据包，在这一点上它比其余五款分词工具都要便捷。另外，jieba库支持的文本编码方式为utf-8。
 
-Jieba库包含许多功能，如分词、词性标注、自定义词典、关键词提取。基于jieba的关键词提取有两种常用算法，一是TF-IDF算法；二是TextRank算法。基于jieba库的分词，包含三种分词模式：
-
-- **精准模式**：试图将句子最精确地切开，适合文本分析）；
-- **全模式**：把句子中所有的可以成词的词语都扫描出来, 速度非常快，但是不能解决歧义）；
-- **搜索引擎模式**：搜索引擎模式，在精确模式的基础上，对长词再次切分，提高召回率，适合用于搜索引擎分词。
-
-SnowNLP是一个python写的类库，可以方便的处理中文文本内容，是受到了TextBlob的启发而写的，由于现在大部分的自然语言处理库基本都是针对英文的，于是写了一个方便处理中文的类库，并且和TextBlob不同的是，这里没有用NLTK，所有的算法都是自己实现的，并且自带了一些训练好的字典。注意本程序都是处理的unicode编码，所以使用时请自行decode成unicode。简单来说，snownlp是一个中文的自然语言处理的Python库，snownlp主要功能有：中文分词、词性标注、情感分析、文本分类、转换成拼音、繁体转简体、提取文本关键词、提取文本摘要、tf，idf、Tokenization、文本相似。
-
-总结：snowNLP库的情感分析模块，使用非常方便，功能也很丰富。
-
-![image-20231029204151474](.\figs\image-20231029204151474.png)
-
-![image-20231029204246708](.\figs\image-20231029204246708.png)
-
-![image-20231029205108763](.\figs\image-20231029205108763.png)
-
-可以看到两个分词工具效果差异不大。但是对于特定意思的长词汇，比如混血王子、第六部、狼图腾、中华文明、龙的传人、巴黎圣母院，snownlp工具就会把它们拆开，所以最终选用jieba工具。
-
-比较结果输出在part1/data/book_com.xlsx
 
 6.添加Tag
 
@@ -703,6 +685,268 @@ print(f"顺序检索代码运行时间: {elapsed_time} 秒")
 对于在movie倒排表中随机选取的三个关键词，顺序检索花费的时间是远远大于压缩检索的。当检索关键词增多，这个差异会更加显著。而且如果将倒排表整个加载到非常占用空间。而压缩索引后，每次只需要把一个块的数据加载到内存，长期存在于内存中的只有元数据列表，极大地节省了空间。
 
 ## 第二阶段：使用豆瓣数据进行推荐
+
+**（1）数据划分**
+
+根据50%提供对用户数据划分代码，实际实验中用于预测的数据抹去打分分值。
+
+```
+# 划分训练集和测试集
+train_data, test_data = train_test_split(loaded_data,test_size=0.5,random_state=42)
+```
+
+**（2）评分排序**
+
+对上面抹去分值的对象进行顺序位置预测，将预测出的对象顺序与实际的顺序进行比较，并用NDCG（全部数据或Topk） 评估预测效果。
+
+
+
+bert-base-chinese.py:使用BERT模型对中文标签进行编码并生成pkl文件
+
+bert-craft.py:读取和处理CSV文件中的数据，并使用BERT模型对标签进行编码，最终将编码后的标签向量保存为二进制文件。
+
+embedding.py:训练时用的类和数据集模型
+
+train.py:根据映射表pkl训练，导出最终points.csv
+
+points.csv:用户对作品的实际打分和预测打分
+
+ndcg.py:导入points.csv，计算每个用户各自的ndcg并对全体用户的ndcg取平均
+
+
+
+根据提供的tag，实验第一阶段获得网页信息等，添加文本信息进行辅助预测 。使用chinese-bert等预训练模型，抽取part1的文本信息，添加到embedding中来补全信息。
+
+```python
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+from transformers import BertTokenizer, BertModel
+import torch
+
+tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
+model = BertModel.from_pretrained('bert-base-chinese').cuda()
+
+# 读取和处理CSV文件中的数据，并使用BERT模型对标签进行编码，最终将编码后的标签向量保存为二进制文件。
+# 使用pandas库的`read_csv`函数从CSV文件中读取数据，并将其存储在`loaded_data`变量中。
+loaded_data = pd.read_csv('part2/data/selected_book_top_1200_data_tag.csv') # part1数据tag
+more_tags = pd.read_excel('part1/data/book.xlsx').fillna('')
+book_id = more_tags['序号'].tolist()
+book_tag = more_tags['关键词'].tolist()
+
+# 创建一个空字典，用于存储标签的向量表示。
+tag_embedding_dict = {}
+# 在此代码块中，禁用梯度计算，以提高代码的运行效率。
+with torch.no_grad():
+    # 对`loaded_data`中的每一行进行迭代。
+    for index, rows in tqdm(loaded_data.iterrows()):
+        # 将标签列表转换为字符串
+        tags_str = " ".join(rows.Tags)
+        # 将第一部分找到的关键词加入到tags_str中
+        book = rows.Book
+        if (book in book_id):
+            tags_str = tags_str[:-2]
+            index = book_id.index(book)
+            add_tags = book_tag[index].split(',')
+            for item in add_tags:
+                tags_str += f",   '{item}'"
+            tags_str += ' }'
+        # print(tags_str)
+        # 使用BERT模型的tokenizer对标签文本进行编码。参数truncation=True指示tokenizer在需要时截断文本，return_tensors='pt'表示返回PyTorch张量格式的编码结果。
+        inputs = tokenizer(tags_str, truncation=True, return_tensors='pt')
+        # print(inputs)
+        # 使用BERT模型model来对输入的编码结果进行处理，通过inputs.input_ids、inputs.token_type_ids和inputs.attention_mask传入模型。这将生成一个关于标签的嵌入表示。
+        outputs = model(inputs.input_ids.cuda(), inputs.token_type_ids.cuda(),
+                        inputs.attention_mask.cuda())
+        # 使用最后一层的平均隐藏状态作为标签的向量表示
+        tag_embedding = outputs.last_hidden_state.mean(dim=1).cpu()
+        tag_embedding_dict[rows.Book] = tag_embedding
+
+import pickle
+
+# 将映射表存储为二进制文件
+with open('part2/data/tag_embedding_dict.pkl', 'wb') as f:
+    pickle.dump(tag_embedding_dict, f)
+
+# 从二进制文件中读取映射表
+with open('part2/data/tag_embedding_dict.pkl', 'rb') as f:
+    tag_embedding_dict = pickle.load(f)
+    # print(tag_embedding_dict)
+
+# 读loaded_data取保存的 CSV 文件
+loaded_data = pd.read_csv('part2\\data\\book_score.csv')
+
+# 显示加载的数据
+print(loaded_data)device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+from transformers import BertTokenizer, BertModel
+import torch
+
+tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
+model = BertModel.from_pretrained('bert-base-chinese').cuda()
+
+# 读取和处理CSV文件中的数据，并使用BERT模型对标签进行编码，最终将编码后的标签向量保存为二进制文件。
+# 使用pandas库的`read_csv`函数从CSV文件中读取数据，并将其存储在`loaded_data`变量中。
+loaded_data = pd.read_csv('part2\data\selected_book_top_1200_data_tag.csv')
+# 创建一个空字典，用于存储标签的向量表示。
+tag_embedding_dict = {}
+# 在此代码块中，禁用梯度计算，以提高代码的运行效率。
+with torch.no_grad():
+    # 对`loaded_data`中的每一行进行迭代。
+    for index, rows in tqdm(loaded_data.iterrows()):
+        # 将标签列表转换为字符串
+        tags_str = " ".join(rows.Tags)
+        # print(tags_str)
+        # 使用BERT模型的tokenizer对标签文本进行编码。参数truncation=True指示tokenizer在需要时截断文本，return_tensors='pt'表示返回PyTorch张量格式的编码结果。
+        inputs = tokenizer(tags_str, truncation=True, return_tensors='pt')
+        # print(inputs)
+        # 使用BERT模型model来对输入的编码结果进行处理，通过inputs.input_ids、inputs.token_type_ids和inputs.attention_mask传入模型。这将生成一个关于标签的嵌入表示。
+        outputs = model(inputs.input_ids.cuda(), inputs.token_type_ids.cuda(),
+                        inputs.attention_mask.cuda())
+        # 使用最后一层的平均隐藏状态作为标签的向量表示
+        tag_embedding = outputs.last_hidden_state.mean(dim=1).cpu()
+        tag_embedding_dict[rows.Book] = tag_embedding
+```
+
+样例代码中仅仅合并tag来聚合信息，因此效果有较大提升空间。所以采用多层神经网络+输出层替代样例代码中的简单内积操作。 self.mlp为多层前馈神经网络，加入非线性的relu作激活函数，使用串联操作获得用户和物品向量。
+
+```python
+class MatrixFactorization(nn.Module):
+    def __init__(self, num_users, num_books, embedding_dim, hidden_dim):
+        super(MatrixFactorization, self).__init__()
+        self.user_embeddings = nn.Embedding(num_users, embedding_dim)
+        self.book_embeddings = nn.Embedding(num_books, embedding_dim)
+        self.linear_embedding = nn.Linear(hidden_dim, embedding_dim)
+        # self.output = nn.Linear(embedding_dim, 6)
+        self.mlp = nn.Sequential(
+            nn.Linear(embedding_dim * 2, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, 1)
+        )
+
+    def forward(self, user, book, tag_embedding):
+        user_embedding = self.user_embeddings(user)
+        book_embedding = self.book_embeddings(book)
+        tag_embedding_proj = self.linear_embedding(tag_embedding)
+        book_intergrate = book_embedding + tag_embedding_proj
+        # 使用串联操作获得用户和物品向量
+        concatenated = torch.cat((user_embedding, book_intergrate), dim = 1)
+        # 多层前馈神经网络
+        predict = self.mlp(concatenated)
+        return predict
+```
+
+使用上述模型进行训练，并导出结果，以供下一阶段分析。
+
+```python
+model = MatrixFactorization(num_users, num_books, embedding_dim,
+                            hidden_state).to(device)
+criterion = nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+
+num_epochs = 20
+lambda_u, lambda_b = 0.001, 0.001
+
+for epoch in range(num_epochs):
+    model.train()
+    total_loss_train, total_loss_test = 0.0, 0.0
+
+    for idx, (user_ids, book_ids, ratings,
+              tag_embedding) in tqdm(enumerate(train_dataloader)):
+        # 使用user_ids, book_ids, ratings进行训练
+
+        optimizer.zero_grad()
+
+        predictions = model(user_ids.to(device), book_ids.to(device),
+                            tag_embedding.squeeze(1).to(device))
+        loss = criterion(
+            predictions,
+            ratings.to(device)) + lambda_u * model.user_embeddings.weight.norm(
+                2) + lambda_b * model.book_embeddings.weight.norm(2)
+
+        loss.backward()
+        optimizer.step()
+
+        total_loss_train += loss.item()
+
+        # if idx % 100 == 0:
+        #     print(f'Step {idx}, Loss: {loss.item()}')
+
+    output_loss_train = total_loss_train / (idx + 1)
+    print(f'Epoch {epoch}, Train loss: {output_loss_train}')
+
+    results = []
+    model.eval()
+
+    with torch.no_grad():
+        for idx, (user_ids, item_ids, true_ratings,tag_embedding) in enumerate(test_dataloader):
+            pred_ratings = model(user_ids.to(device), item_ids.to(device),tag_embedding.squeeze(1).to(device))
+
+            loss = criterion(pred_ratings, ratings.to(device))
+            total_loss_test += loss.item()
+            
+            # 将结果转换为 numpy arrays
+            user_ids_np = user_ids.long().cpu().numpy().reshape(-1, 1)
+            pred_ratings_np = pred_ratings.cpu().numpy().reshape(-1, 1)
+            true_ratings_np = true_ratings.numpy().reshape(-1, 1)
+
+            # 将这三个 arrays 合并成一个 2D array
+            batch_results = np.column_stack(
+                (user_ids_np, pred_ratings_np, true_ratings_np))
+
+            # 将这个 2D array 添加到 results
+            results.append(batch_results)
+
+        # 将结果的 list 转换为一个大的 numpy array
+        results = np.vstack(results)
+
+        print(f'Epoch {epoch}, Test loss:, {total_loss_test / (idx + 1)}')
+
+        # 将结果转换为DataFrame
+        results_df = pd.DataFrame(results, columns=['user', 'pred', 'true'])
+        results_df['user'] = results_df['user'].astype(int)
+
+
+outputpath='.\part2\points.csv'
+results_df.to_csv(outputpath,sep=',',index=False,header=True)
+```
+
+计算NDCG评估预测效果：
+
+```python
+# 按用户分组计算NDCG
+def compute_ndcg(group):
+    true_ratings = group['true'].tolist()
+    pred_ratings = group['pred'].tolist()
+    return ndcg_score([true_ratings], [pred_ratings], k=50)
+
+file='.\part2\points.csv'
+csv_data = pd.read_csv(file, low_memory = False)
+csv_df = pd.DataFrame(csv_data)
+ndcg_scores = csv_df.groupby('user').apply(compute_ndcg)
+       # 计算平均NDCG
+avg_ndcg = ndcg_scores.mean()
+print(
+    f'Average NDCG: {avg_ndcg}'
+)
+```
+
+**（3）结果分析**
+
+![image-20231101103739675](.\figs\image-20231101103739675.png)
+
+![image-20231101103719435](.\figs\image-20231101103719435.png)
+
+![image-20231101104254654](.\figs\image-20231101104254654.png)
+
+经过20轮的训练，训练集总损失从49.78下降到了4.56，测试集的总损失从10.07下降到了4.27，最后的平均NDCG评分为0.668。
+
+示例代码效果：Epoch 19, Train loss: 2.489999907357352, Test loss:, 7.340342143913368, Average NDCG: 0.6925056733687665
+
+可以看到与示例代码对比，测试集的总损失从7.34下降到4.27，平均NDCG评分从0.692下降到0.668，模型效果有所改变。
+
+初步分析原因可能是有一些用户的评分数据过少，用多层前馈神经网络来聚合信息的效果比较一般。
 
 ## 提交文件说明
 
