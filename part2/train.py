@@ -8,8 +8,9 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 
+# print(torch.cuda.is_available())
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-from embedding import BookRatingDataset,MatrixFactorization,create_id_mapping
+from embedding import BookRatingDataset, MatrixFactorization, create_id_mapping
 
 # 从二进制文件中读取映射表
 with open('part2/data/tag_embedding_dict.pkl', 'rb') as f:
@@ -92,8 +93,10 @@ results = []
 model.eval()
 
 with torch.no_grad():
-    for idx, (user_ids, item_ids, true_ratings,tag_embedding) in enumerate(test_dataloader):
-        pred_ratings = model(user_ids.to(device), item_ids.to(device),tag_embedding.squeeze(1).to(device))
+    for idx, (user_ids, item_ids, true_ratings,
+              tag_embedding) in enumerate(test_dataloader):
+        pred_ratings = model(user_ids.to(device), item_ids.to(device),
+                             tag_embedding.squeeze(1).to(device))
 
         # 将结果转换为 numpy arrays
         user_ids_np = user_ids.long().cpu().numpy().reshape(-1, 1)
@@ -113,5 +116,5 @@ with torch.no_grad():
     # 将结果转换为DataFrame
     results_df = pd.DataFrame(results, columns=['user', 'pred', 'true'])
     results_df['user'] = results_df['user'].astype(int)
-    outputpath='.\part2\points.csv'
-    results_df.to_csv(outputpath,sep=',',index=False,header=True)
+    outputpath = '.\part2\points.csv'
+    results_df.to_csv(outputpath, sep=',', index=False, header=True)
