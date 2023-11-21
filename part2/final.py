@@ -49,15 +49,16 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
+
 # 按用户分组计算NDCG
 def compute_ndcg(group):
     true_ratings = group['true'].tolist()
     pred_ratings = group['pred'].tolist()
-    return ndcg_score([true_ratings], [pred_ratings], k = 50)
+    return ndcg_score([true_ratings], [pred_ratings], k=50)
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-from embedding import BookRatingDataset,MatrixFactorization,create_id_mapping
+from embedding import BookRatingDataset, MatrixFactorization, create_id_mapping
 
 # 从二进制文件中读取映射表
 with open('part2/data/tag_embedding_dict.pkl', 'rb') as f:
@@ -112,30 +113,37 @@ for epoch in range(num_epochs):
     model.train()
     total_loss_train, total_loss_test = 0.0, 0.0
 
-    for idx, (user_ids, book_ids, ratings, tag_embedding) in tqdm(enumerate(train_dataloader)):
+    for idx, (user_ids, book_ids, ratings,
+              tag_embedding) in tqdm(enumerate(train_dataloader)):
         # 使用user_ids, book_ids, ratings进行训练
 
         optimizer.zero_grad()
-        
-        predictions = model(user_ids.to(device), book_ids.to(device), tag_embedding.squeeze(1).to(device))
-        loss = criterion(predictions, ratings.to(device)) + lambda_u * model.user_embeddings.weight.norm(2) + lambda_b * model.book_embeddings.weight.norm(2)
-        
+
+        predictions = model(user_ids.to(device), book_ids.to(device),
+                            tag_embedding.squeeze(1).to(device))
+        loss = criterion(
+            predictions,
+            ratings.to(device)) + lambda_u * model.user_embeddings.weight.norm(
+                2) + lambda_b * model.book_embeddings.weight.norm(2)
+
         loss.backward()
         optimizer.step()
 
         total_loss_train += loss.item()
-        
+
         # if idx % 100 == 0:
         #     print(f'Step {idx}, Loss: {loss.item()}')
 
-    output_loss_train = total_loss_train / (idx + 1) 
+    output_loss_train = total_loss_train / (idx + 1)
 
     results = []
     model.eval()
 
     with torch.no_grad():
-        for idx, (user_ids, item_ids, true_ratings, tag_embedding) in enumerate(test_dataloader):
-            pred_ratings = model(user_ids.to(device), item_ids.to(device), tag_embedding.squeeze(1).to(device))
+        for idx, (user_ids, item_ids, true_ratings,
+                  tag_embedding) in enumerate(test_dataloader):
+            pred_ratings = model(user_ids.to(device), item_ids.to(device),
+                                 tag_embedding.squeeze(1).to(device))
 
             loss = criterion(pred_ratings, ratings.to(device))
             total_loss_test += loss.item()
@@ -146,7 +154,8 @@ for epoch in range(num_epochs):
             true_ratings_np = true_ratings.numpy().reshape(-1, 1)
 
             # 将这三个 arrays 合并成一个 2D array
-            batch_results = np.column_stack((user_ids_np, pred_ratings_np, true_ratings_np))
+            batch_results = np.column_stack(
+                (user_ids_np, pred_ratings_np, true_ratings_np))
             # print((user_ids_np, pred_ratings_np, true_ratings_np))
 
             # 将这个 2D array 添加到 results
@@ -163,4 +172,6 @@ for epoch in range(num_epochs):
 
         # 计算平均NDCG
         avg_ndcg = ndcg_scores.mean()
-        print(f'Epoch {epoch}, Train loss: {output_loss_train}, Test loss:, {total_loss_test / (idx + 1)}, Average NDCG: {avg_ndcg}')
+        print(
+            f'Epoch {epoch}, Train loss: {output_loss_train}, Test loss:, {total_loss_test / (idx + 1)}, Average NDCG: {avg_ndcg}'
+        )

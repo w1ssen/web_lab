@@ -22,6 +22,8 @@
 
 ##### 1.爬取页面（+反爬应对措施）
 
+爬虫的方式选取的是网页爬虫。
+
 在part1/web_scraper.py文件中使用 python 的 requests 库，直接请求对应的 url来获取 html 的内容。
 
 爬取过程中通过生成随机ip，手动添加报头，添加cookies，爬取休息来规避平台反爬
@@ -292,7 +294,7 @@ def word_cut0(mytext):
     result_list = []
   
 	…… 
-        
+    
   
     return new_list
 ```
@@ -319,7 +321,7 @@ def word_cut1(mytext):
     result_list = []
   
 	…… 
-          
+      
     return new_list
 ```
 
@@ -365,7 +367,7 @@ def tyc(string1):
         #print(num)
         for i in range(1, num):
             combine_dict[seperate_word[i]] = seperate_word[0]
-          
+      
 
     # 将分词以/为间隔合并
     #seg_list = jieba.lcut(string1, cut_all = False)
@@ -391,8 +393,6 @@ def tyc(string1):
 	new_list = list(set(tyc(result_list)))
     new_list.sort(key = tyc(result_list).index)	#  保持原来顺序
 ```
-
-
 
 6.添加Tag
 
@@ -585,9 +585,9 @@ def print_movie_info(ids):
 
 ![image-20231030193953368](.\figs\image-20231030193953368.png)
 
-##### 4.引索压缩
+##### 4.索引压缩
 
-因为涉及到的关键词多大25000个，这个规模的倒排表如果放在内存里很占用空间，且不利于检索。part1/inverted_index_zip通过分块存储对倒排表进行了压缩。
+因为涉及到的关键词多大25000个，这个规模的倒排表如果放在内存里很占用空间，且不利于检索。part1/inverted_index_zip通过按块存储对倒排表进行了压缩。
 
 在这里将100个关键词作为一组。当组满时，生成一个二进制文件存储压缩的倒排表。最后生成一个元数据查询表，将块号和块内存储的关键词记录在元数据查询表中。
 
@@ -682,24 +682,32 @@ print(f"顺序检索代码运行时间: {elapsed_time} 秒")
 
 ![image-20231030174246161](.\figs\image-20231030174246161.png)
 
-对于在movie倒排表中随机选取的三个关键词，顺序检索花费的时间是远远大于压缩检索的。当检索关键词增多，这个差异会更加显著。而且如果将倒排表整个加载到非常占用空间。而压缩索引后，每次只需要把一个块的数据加载到内存，长期存在于内存中的只有元数据列表，极大地节省了空间。
+对于在movie倒排表中随机选取的三个关键词，顺序检索花费的时间是远远大于压缩检索的。当检索关键词增多，这个差异会更加显著。
+
+而且如果将倒排表整个加载到非常占用空间。而压缩索引后，每次只需要把一个块的数据加载到内存，长期存在于内存中的只有元数据列表，极大地节省了空间。
 
 ## 第二阶段：使用豆瓣数据进行推荐
 
-**（1）数据划分**
+### **一、数据划分**
+
+#### 实验要求：
 
 根据50%提供对用户数据划分代码，实际实验中用于预测的数据抹去打分分值。
+
+#### 实验步骤：
 
 ```
 # 划分训练集和测试集
 train_data, test_data = train_test_split(loaded_data,test_size=0.5,random_state=42)
 ```
 
-**（2）评分排序**
+### **二、评分排序**
+
+#### 实验要求：
 
 对上面抹去分值的对象进行顺序位置预测，将预测出的对象顺序与实际的顺序进行比较，并用NDCG（全部数据或Topk） 评估预测效果。
 
-
+#### 实验步骤：
 
 bert-base-chinese.py:使用BERT模型对中文标签进行编码并生成pkl文件
 
@@ -713,7 +721,7 @@ points.csv:用户对作品的实际打分和预测打分
 
 ndcg.py:导入points.csv，计算每个用户各自的ndcg并对全体用户的ndcg取平均
 
-
+##### 1.抽取文本信息，添加到embedding中
 
 根据提供的tag，实验第一阶段获得网页信息等，添加文本信息进行辅助预测 。使用chinese-bert等预训练模型，抽取part1的文本信息，添加到embedding中来补全信息。
 
@@ -809,6 +817,8 @@ with torch.no_grad():
 
 样例代码中仅仅合并tag来聚合信息，因此效果有较大提升空间。所以采用多层神经网络+输出层替代样例代码中的简单内积操作。 self.mlp为多层前馈神经网络，加入非线性的relu作激活函数，使用串联操作获得用户和物品向量。
 
+##### 2.MF模型
+
 ```python
 class MatrixFactorization(nn.Module):
     def __init__(self, num_users, num_books, embedding_dim, hidden_dim):
@@ -838,6 +848,8 @@ class MatrixFactorization(nn.Module):
 ```
 
 使用上述模型进行训练，并导出结果，以供下一阶段分析。
+
+##### 3.模型训练
 
 ```python
 model = MatrixFactorization(num_users, num_books, embedding_dim,
@@ -885,7 +897,7 @@ for epoch in range(num_epochs):
 
             loss = criterion(pred_ratings, ratings.to(device))
             total_loss_test += loss.item()
-            
+        
             # 将结果转换为 numpy arrays
             user_ids_np = user_ids.long().cpu().numpy().reshape(-1, 1)
             pred_ratings_np = pred_ratings.cpu().numpy().reshape(-1, 1)
@@ -912,7 +924,7 @@ outputpath='.\part2\points.csv'
 results_df.to_csv(outputpath,sep=',',index=False,header=True)
 ```
 
-计算NDCG评估预测效果：
+##### 4.计算NDCG评估预测效果：
 
 ```python
 # 按用户分组计算NDCG
@@ -932,7 +944,7 @@ print(
 )
 ```
 
-**（3）结果分析**
+### **三、结果分析**
 
 ![image-20231101103739675](.\figs\image-20231101103739675.png)
 
@@ -951,7 +963,7 @@ print(
 ## 提交文件说明
 
 ```
-├─part1 # 第一阶段
+训练时用的类和数据集模型训练时用的类和数据集模型├─part1 # 第一阶段
 │  │  add_tag_to_keyword.py # 将Tag加入关键词
 │  │  inverted_index_to_excel.py # 创建倒排表并写入表格
 │  │  inverted_index_zip.py # 索引压缩,以及顺序索引和压缩索引的性能对比
@@ -984,11 +996,18 @@ print(
 │          tyc.cpython-310.pyc
 │          word_cut_jieba.cpython-310.pyc
 │
-├─part2
-│  │  graphrec.py
-│  │  graph_rec_model.py
-│  │  text_embedding.py
-│  │  utils.py
+├─part2 # 第二阶段
+│  │  bert-base-chinese.py # bert模型
+│  │  bert-craft.py # bert模型并加入第一阶段得到的tag
+│  │  embedding.py # 训练时用的类和数据集模型
+│  │  final.py # 整合之后的程序
+│  │  graphrec.py #社交网络
+│  │  graph_rec_model.py # 社交网络模型
+│  │  ndcg.py # 计算ndcg
+│  │  points.csv # 预测得分和实际得分
+│  │  res.md # 第二部分运行结果
+│  │  train.py # 训练模型
+│  │  utils.py 
 │  │
 │  ├─data
 │  │      book_score.csv
@@ -998,20 +1017,15 @@ print(
 │  │      tag_embedding_dict.pkl
 │  │
 │  └─__pycache__
+│          embedding.cpython-310.pyc
+│          embedding.cpython-311.pyc
 │          graph_rec_model.cpython-39.pyc
 │          utils.cpython-39.pyc
 │
-├─report
-│  │  report.md
-│  │
-│  └─figs # 报告中的图像
-│
-└─useless # 中间数据以及一些数据的复制
-        book.xlsx
-        book_data.xlsx
-        movie copy 2.xlsx
-        movie_data.xlsx
-        test.xlsx
-        ~$movie_list.xlsx
-```
+└─report # 报告相关内容
+   │  report.md # 报告的markdown版本
+   │
+   └─figs # 报告中的图像
 
+
+```

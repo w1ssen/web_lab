@@ -37,7 +37,6 @@ with torch.no_grad():
         # 使用最后一层的平均隐藏状态作为标签的向量表示
         tag_embedding = outputs.last_hidden_state.mean(dim=1).cpu()
         tag_embedding_dict[rows.Book] = tag_embedding
-
 '''
 import pickle
 
@@ -56,7 +55,6 @@ import joblib
 with open('data/tag_embedding_dict.pkl', 'wb') as f:  # 打开保存的文件夹
     joblib.dump(tag_embedding_dict, f)
     f.close()
-
 
 with open('data/tag_embedding_dict.pkl', 'rb') as f:  # 读取pickle文件
     tag_embedding_dict = joblib.load(f)
