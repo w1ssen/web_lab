@@ -1,0 +1,5 @@
+<http://rdf.freebase.com/ns/base.sxswfilm.topic>	<http://rdf.freebase.com/ns/type.type.instance>	<http://rdf.freebase.com/ns/m.05f4_n0>	.
+<http://rdf.freebase.com/ns/base.tallships.film_with_tall_ships>	<http://rdf.freebase.com/ns/type.type.instance>	<http://rdf.freebase.com/ns/m.05nlx4>	.
+<http://rdf.freebase.com/ns/base.tallships.film_with_tall_ships>	<http://rdf.freebase.com/ns/type.type.instance>	<http://rdf.freebase.com/ns/m.01vksx>	.
+<http://rdf.freebase.com/ns/base.tallships.film_with_tall_ships>	<http://rdf.freebase.com/ns/type.type.instance>	<http://rdf.freebase.com/ns/m.03y0pn>	.
+<http://rdf.freebase.com/ns/m.010ntlwj>	<http://rdf.freebase.com/ns/film.film_crew_gig.film>	<http://rdf.freebase.com/ns/m.08s6mr>	.
