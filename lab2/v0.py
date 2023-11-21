@@ -5,7 +5,8 @@ import json
 import pandas as pd
 import csv
 
-movie_tags = pd.read_csv("Movie_tag.csv")
+# 构建movie,tag字典
+movie_tags = pd.read_csv("./lab2/Movie_tag.csv")
 movie = {}
 for i in range(len(movie_tags)):
     movie[movie_tags["id"][i]] = movie_tags['tag'][i]
@@ -13,14 +14,14 @@ for i in range(len(movie_tags)):
 # print(movie.keys())
 
 movie_entity = {}
-with open('douban2fb.txt', 'rb') as f:
+with open('./lab2/douban2fb.txt', 'rb') as f:
     for line in f:
         line = line.strip()
-        list1 = line.decode().split('\t')
+        list1 = line.decode().split('\t') # 电影ID与实体的字典
         # print(list1)
-        movie_entity[list1[1]] = {"tag": movie[int(list1[0])]}
+        movie_entity[list1[1]] = {"tag": movie[int(list1[0])]} # 构建实体_tag字典
 
-
+# 将实体_tag字典转化为json格式
 data = json.dumps(movie_entity, indent=1, ensure_ascii=False)
 # print(data)
 with open('movie_entity.json', 'w', newline='\n') as f:
