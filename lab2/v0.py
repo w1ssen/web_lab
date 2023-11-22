@@ -48,8 +48,8 @@ count = 0
 with gzip.open(freebase_info_fpath, 'rb') as f:
     for line in f:
         count = count + 1
-        if count > 100000:
-            break
+        # if count > 100000:
+        #     break
         line_info = line.decode().split('\t')
         # 过滤不含有template前缀的实体
         if (template_str not in line_info[0]) or (template_str
@@ -67,6 +67,16 @@ with gzip.open(freebase_info_fpath, 'rb') as f:
                 mvi_entities2.append(head)
             if (tail not in mvi_entities) and (tail not in mvi_entities2):
                 mvi_entities2.append(tail)
+            if (head in entry_num):
+                entry_num[head] = entry_num[head] + 1
+                # print(head, entry_num[head])
+            else:
+                entry_num[head] = 1
+            if (tail in entry_num):
+                entry_num[tail] = entry_num[tail] + 1
+                # print(tail, entry_num[tail])
+            else:
+                entry_num[tail] = 1
 wf.close()
 
 # print(mvi_entities2)
@@ -80,8 +90,8 @@ count = 0
 with gzip.open(freebase_info_fpath, 'rb') as f:
     for line in f:
         count = count + 1
-        if count > 100000:
-            break
+        # if count > 100000:
+        #     break
         line_info = line.decode().split('\t')
         # 过滤不含有template前缀的实体
         if (template_str not in line_info[0]) or (template_str
@@ -111,10 +121,16 @@ wf.close()
 # print(mvi_entities3)
 print("done2")
 
-wf = open("fb.txt", "w")
+outfile3 = "./lab2/fb.txt"
+if os.path.exists(outfile3):
+    os.remove(outfile3)
+wf = open(outfile3, "w")
 
-# 只计算在第二跳中的实体相关三元组数，因为第一跳涉及的三元组很少。初始的578个实体不能直接加入到2跳集合中，因为有可能它在二跳中没有相关的三元组
+# 计算实体相关三元组数，初始的578个实体不能直接加入到2跳集合中，因为有可能它没有相关的三元组
 for line in mvi_entities3:
-    if (entry_num[line] > 50):  # 只保留出现频率高于50的实体
-        wf.write(line + '\n')
+    if (entry_num[line] < 10):  # 只保留出现频率高于50的实体
+        continue
+    wf.write(line + '\n')
+print('done3')
+# print(entry_num)
 wf.close()
