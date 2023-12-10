@@ -1,37 +1,14 @@
-import gzip
-import json
-import os
-import pandas as pd
-import csv
-import time
-import pickle
-import gzip
-from tqdm import tqdm
+# web信息处理与应用 lab2
 
-# 设定参数:允许遍历的最大次数
-max_run_times = 1000000
+## 第一阶段：知识感知推荐—图谱抽取
 
-# 读取Movie_tag.csv文件，构建movie字典
-movie_tags = pd.read_csv("Movie_tag.csv")
-movie = {
-    movie_tags["id"][i]: movie_tags['tag'][i]
-    for i in range(len(movie_tags))
-}
-template_str = "http://rdf.freebase.com/ns/"
+#### 1.获取初始电影实体
 
-# 构建实体_tag字典
-movie_entity = {}
-# mvi_entities = set()  # 初始可匹配实体
-# mvi_entities2 = set()  # 一跳后可匹配实体
-# mvi_entities3 = set()  # 二跳后可匹配实体
+构建实体-tag字典，同时匹配获得Freebase中对应的实体（共578个可匹配实体），加入到一跳可匹配实体
 
-# 记录实体相关三元组数量
-
-entry_num = {}
-
+```python
 def entry0():
     mvi_entities = set()
-    # 构建实体-tag字典，同时匹配获得Freebase中对应的实体（共578个可匹配实体），加入到一跳可匹配实体
     with open('douban2fb.txt', 'rb') as f:
         for line in f:
             line = line.strip()
@@ -43,8 +20,13 @@ def entry0():
     print("entry0:", len(mvi_entities))
     with open("entry0.pkl", "wb") as f:
         pickle.dump(mvi_entities, f)
+```
 
+#### 2.提取一跳实体
 
+以578个可匹配实体为起点，通过三元组关联，提取一跳可达的全部实体，以形成新的起点集合。
+
+```python
 def step1():
     # 以 mvi_entities 为起点生成一跳子图，保存到 grarph1step.gz 文件中
     with gzip.open(outfile1, 'wb') as ans:
@@ -83,7 +65,13 @@ def step1():
                         entry_num[rel] += 1
                     else:
                         entry_num[rel] = 1
+```
 
+#### 3.筛选一跳所得实体
+
+只保留至少出现在20个三元组中的实体，同时只保留出现超过50次的关系，由此得到的一跳子图包含了758个实体。
+
+```python
 def Select1():
     with gzip.open(outfile1, 'rb') as f:
         mvi_entities2 = set()
@@ -105,10 +93,17 @@ def Select1():
         print("entry1:", len(mvi_entities2))
         with open("entry1.pkl", "wb") as f:
             pickle.dump(mvi_entities2, f)
+```
 
+此时包含758个实体：
 
-entry_num2 = {}#二跳元素存储
+![image-20231210204604118](C:\Users\wyzhou\AppData\Roaming\Typora\typora-user-images\image-20231210204604118.png)
 
+#### 4.提取二跳实体
+
+以758个可匹配实体为起点，通过三元组关联，提取一跳可达的全部实体，以形成新的起点集合。
+
+```python
 def step2():
     with gzip.open(outfile2, 'wb') as ans:
         with open('entry1.pkl', 'rb') as f1:
@@ -146,8 +141,17 @@ def step2():
                         entry_num2[rel] += 1
                     else:
                         entry_num2[rel] = 1
+```
 
+#### 5.筛选二跳实体
 
+先过滤掉出现超过20000次的实体和出现少于50次的关系，然后再只保留出现次数大于15次的实体和出现大于50次的关系，对两跳子图进行清洗。
+
+故此步需要筛选两次，第一次筛选后由于实体集合改变，故需重新生成gz文件，此时可从二跳生成的gz文件中筛选，减小运行时间。
+
+二跳第一次筛选：
+
+```python
 def Select2():
     with gzip.open(outfile2, 'rb') as f:
         mvi_entities2 = set()
@@ -169,9 +173,15 @@ def Select2():
         print("entry2:", len(mvi_entities2))
         with open("entry2.pkl", "wb") as f:
             pickle.dump(mvi_entities2, f)
+```
 
-entry_num3 = {}#二跳首次筛选后元素存储
+此时包含50231562个实体：
 
+![image-20231210204710588](C:\Users\wyzhou\AppData\Roaming\Typora\typora-user-images\image-20231210204710588.png)
+
+生成新的gz文件：
+
+```python
 def step3():
     with gzip.open(outfile3, 'wb') as ans:
         with open('entry2.pkl', 'rb') as f1:
@@ -209,7 +219,11 @@ def step3():
                         entry_num3[rel] += 1
                     else:
                         entry_num3[rel] = 1
+```
 
+二跳后第二次筛选：
+
+```python
 def Select3():
     with gzip.open(outfile3, 'rb') as f:
         mvi_entities2 = set()
@@ -231,23 +245,10 @@ def Select3():
         print("entry3:", len(mvi_entities2))
         with open("entry3.pkl", "wb") as f:
             pickle.dump(mvi_entities2, f)
+```
 
+最终包含17711个实体：
 
-# 提取一跳可达实体
-freebase_info_fpath = "freebase_douban.gz"  # 初始freebase
-outfile1 = "graph_1step.gz"  # 一跳输出文件
-outfile2 = "graph_2step.gz"  # 二跳输出文件
-outfile3 = "graph_3step.gz"
-#if os.path.exists(outfile1):
-    #os.remove(outfile1)
-#entry0()
-# 开始计时
-start_time = time.time()
-step1()
-Select1()
-step2()
-Select2()
-step3()
-Select3()
-end_time = time.time()
-print("time:", end_time - start_time)
+![image-20231210211311481](C:\Users\wyzhou\AppData\Roaming\Typora\typora-user-images\image-20231210211311481.png)
+
+## 第二阶段：
