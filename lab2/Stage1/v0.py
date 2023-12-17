@@ -11,12 +11,12 @@ from tqdm import tqdm
 # 设定参数:允许遍历的最大次数
 max_run_times = 1000000
 
-# 读取Movie_tag.csv文件，构建movie字典
-movie_tags = pd.read_csv("Movie_tag.csv")
-movie = {
-    movie_tags["id"][i]: movie_tags['tag'][i]
-    for i in range(len(movie_tags))
-}
+# # 读取Movie_tag.csv文件，构建movie字典
+# movie_tags = pd.read_csv("Movie_tag.csv")
+# movie = {
+#     movie_tags["id"][i]: movie_tags['tag'][i]
+#     for i in range(len(movie_tags))
+# }
 template_str = "http://rdf.freebase.com/ns/"
 
 # 构建实体_tag字典
@@ -33,7 +33,7 @@ entry_num = {}
 def entry0():
     mvi_entities = set()
     # 构建实体-tag字典，同时匹配获得Freebase中对应的实体（共578个可匹配实体），加入到一跳可匹配实体
-    with open('douban2fb.txt', 'rb') as f:
+    with open('lab2/Stage1/douban2fb.txt', 'rb') as f:
         for line in f:
             line = line.strip()
             parts = line.decode().split('\t')
@@ -42,14 +42,14 @@ def entry0():
                 "tag": movie[int(parts[0])]
             }  # 构建实体_tag字典
     print("entry0:", len(mvi_entities))
-    with open("entry0.pkl", "wb") as f:
+    with open("lab2/Stage1/entry0.pkl", "wb") as f:
         pickle.dump(mvi_entities, f)
 
 
 def step1():
     # 以 mvi_entities 为起点生成一跳子图，保存到 grarph1step.gz 文件中
     with gzip.open(outfile1, 'wb') as ans:
-        with open('entry0.pkl', 'rb') as f1:
+        with open('lab2/Stage1/entry0.pkl', 'rb') as f1:
             mvi_entities = pickle.load(f1)
         with gzip.open(freebase_info_fpath, 'rb') as f:
             for line in tqdm(f, total=395577070):
@@ -89,7 +89,7 @@ def step1():
 def Select1():
     with gzip.open(outfile1, 'rb') as f:
         mvi_entities2 = set()
-        with open("entry0.pkl", "rb") as f1:
+        with open("lab2/Stage1/entry0.pkl", "rb") as f1:
             mvi_entities = pickle.load(f1)
         for line in tqdm(f, total=395577070):
             triple_parts = line.decode().split('\t')[:3]
@@ -105,7 +105,7 @@ def Select1():
                 mvi_entities2.add(head)
                 mvi_entities2.add(tail)
         print("entry1:", len(mvi_entities2))
-        with open("entry1.pkl", "wb") as f:
+        with open("lab2/Stage1/entry1.pkl", "wb") as f:
             pickle.dump(mvi_entities2, f)
 
 
@@ -114,7 +114,7 @@ entry_num2 = {}  # 二跳元素存储
 
 def step2():
     with gzip.open(outfile2, 'wb') as ans:
-        with open('entry1.pkl', 'rb') as f1:
+        with open('lab2/Stage1/entry1.pkl', 'rb') as f1:
             mvi_entities = pickle.load(f1)
         with gzip.open(freebase_info_fpath, 'rb') as f:
             for line in tqdm(f, total=395577070):
@@ -154,7 +154,7 @@ def step2():
 def Select2():
     with gzip.open(outfile2, 'rb') as f:
         mvi_entities2 = set()
-        with open("entry1.pkl", "rb") as f1:
+        with open("lab2/Stage1/entry1.pkl", "rb") as f1:
             mvi_entities = pickle.load(f1)
         for line in tqdm(f, total=395577070):
             triple_parts = line.decode().split('\t')[:3]
@@ -170,7 +170,7 @@ def Select2():
                 mvi_entities2.add(head)
                 mvi_entities2.add(tail)
         print("entry2:", len(mvi_entities2))
-        with open("entry2.pkl", "wb") as f:
+        with open("lab2/Stage1/entry2.pkl", "wb") as f:
             pickle.dump(mvi_entities2, f)
 
 
@@ -179,7 +179,7 @@ entry_num3 = {}  # 二跳首次筛选后元素存储
 
 def step3():
     with gzip.open(outfile3, 'wb') as ans:
-        with open('entry2.pkl', 'rb') as f1:
+        with open('lab2/Stage1/entry2.pkl', 'rb') as f1:
             mvi_entities = pickle.load(f1)
         with gzip.open(outfile2, 'rb') as f:
             for line in tqdm(f, total=395577070):
@@ -217,10 +217,10 @@ def step3():
 
 
 def Select3():
-    with gzip.open('final.gz', 'wb') as ans:
+    with gzip.open('lab2/Stage1/final.gz', 'wb') as ans:
         with gzip.open(outfile3, 'rb') as f:
             mvi_entities2 = set()
-            with open("entry2.pkl", "rb") as f1:
+            with open("lab2/Stage1/entry2.pkl", "rb") as f1:
                 mvi_entities = pickle.load(f1)
             for line in tqdm(f, total=395577070):
                 triple_parts = line.decode().split('\t')[:3]
@@ -237,22 +237,22 @@ def Select3():
                     mvi_entities2.add(tail)
                     ans.write(line + b'\n')
             print("entry3:", len(mvi_entities2))
-            with open("entry3.pkl", "wb") as f:
+            with open("lab2/Stage1/entry3.pkl", "wb") as f:
                 pickle.dump(mvi_entities2, f)
 
 
 # 提取一跳可达实体
-freebase_info_fpath = "freebase_douban.gz"  # 初始freebase
-outfile1 = "graph_1step.gz"  # 一跳输出文件
-outfile2 = "graph_2step.gz"  # 二跳输出文件
-outfile3 = "graph_3step.gz"
+freebase_info_fpath = "lab2/Stage1/freebase_douban.gz"  # 初始freebase
+outfile1 = "lab2/Stage1/graph_1step.gz"  # 一跳输出文件
+outfile2 = "lab2/Stage1/graph_2step.gz"  # 二跳输出文件
+outfile3 = "lab2/Stage1/graph_3step.gz"
 # if os.path.exists(outfile1):
 # os.remove(outfile1)
 # entry0()
 # 开始计时
-step1()
-Select1()
-step2()
-Select2()
+# step1()
+# Select1()
+# step2()
+# Select2()
 step3()
 Select3()
