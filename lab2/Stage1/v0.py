@@ -29,6 +29,7 @@ movie_entity = {}
 
 entry_num = {}
 
+
 def entry0():
     mvi_entities = set()
     # 构建实体-tag字典，同时匹配获得Freebase中对应的实体（共578个可匹配实体），加入到一跳可匹配实体
@@ -84,6 +85,7 @@ def step1():
                     else:
                         entry_num[rel] = 1
 
+
 def Select1():
     with gzip.open(outfile1, 'rb') as f:
         mvi_entities2 = set()
@@ -107,7 +109,8 @@ def Select1():
             pickle.dump(mvi_entities2, f)
 
 
-entry_num2 = {}#二跳元素存储
+entry_num2 = {}  #二跳元素存储
+
 
 def step2():
     with gzip.open(outfile2, 'wb') as ans:
@@ -170,7 +173,9 @@ def Select2():
         with open("entry2.pkl", "wb") as f:
             pickle.dump(mvi_entities2, f)
 
-entry_num3 = {}#二跳首次筛选后元素存储
+
+entry_num3 = {}  #二跳首次筛选后元素存储
+
 
 def step3():
     with gzip.open(outfile3, 'wb') as ans:
@@ -210,6 +215,7 @@ def step3():
                     else:
                         entry_num3[rel] = 1
 
+
 def Select3():
     with gzip.open(outfile3, 'rb') as f:
         mvi_entities2 = set()
@@ -238,16 +244,13 @@ freebase_info_fpath = "freebase_douban.gz"  # 初始freebase
 outfile1 = "graph_1step.gz"  # 一跳输出文件
 outfile2 = "graph_2step.gz"  # 二跳输出文件
 outfile3 = "graph_3step.gz"
-#if os.path.exists(outfile1):
-    #os.remove(outfile1)
-#entry0()
+# if os.path.exists(outfile1):
+# os.remove(outfile1)
+# entry0()
 # 开始计时
-start_time = time.time()
 step1()
 Select1()
 step2()
 Select2()
 step3()
 Select3()
-end_time = time.time()
-print("time:", end_time - start_time)
