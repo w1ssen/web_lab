@@ -109,7 +109,7 @@ def Select1():
             pickle.dump(mvi_entities2, f)
 
 
-entry_num2 = {}  #二跳元素存储
+entry_num2 = {}  # 二跳元素存储
 
 
 def step2():
@@ -174,7 +174,7 @@ def Select2():
             pickle.dump(mvi_entities2, f)
 
 
-entry_num3 = {}  #二跳首次筛选后元素存储
+entry_num3 = {}  # 二跳首次筛选后元素存储
 
 
 def step3():
@@ -217,26 +217,28 @@ def step3():
 
 
 def Select3():
-    with gzip.open(outfile3, 'rb') as f:
-        mvi_entities2 = set()
-        with open("entry2.pkl", "rb") as f1:
-            mvi_entities = pickle.load(f1)
-        for line in tqdm(f, total=395577070):
-            triple_parts = line.decode().split('\t')[:3]
-            # 头实体
-            head = triple_parts[0][len(template_str) + 1:].strip('>')
-            # 关系
-            rel = triple_parts[1][len(template_str) + 1:].strip('>')
-            # 尾实体
-            tail = triple_parts[2][len(template_str) + 1:].strip('>')
-            if ((head in mvi_entities or entry_num3[head] > 15)
-                    and (entry_num3[tail] > 15)
-                    and (rel in mvi_entities or entry_num3[rel] > 50)):
-                mvi_entities2.add(head)
-                mvi_entities2.add(tail)
-        print("entry3:", len(mvi_entities2))
-        with open("entry3.pkl", "wb") as f:
-            pickle.dump(mvi_entities2, f)
+    with gzip.open('final.gz', 'wb') as ans:
+        with gzip.open(outfile3, 'rb') as f:
+            mvi_entities2 = set()
+            with open("entry2.pkl", "rb") as f1:
+                mvi_entities = pickle.load(f1)
+            for line in tqdm(f, total=395577070):
+                triple_parts = line.decode().split('\t')[:3]
+                # 头实体
+                head = triple_parts[0][len(template_str) + 1:].strip('>')
+                # 关系
+                rel = triple_parts[1][len(template_str) + 1:].strip('>')
+                # 尾实体
+                tail = triple_parts[2][len(template_str) + 1:].strip('>')
+                if ((head in mvi_entities or entry_num3[head] > 15)
+                        and (entry_num3[tail] > 15)
+                        and (rel in mvi_entities or entry_num3[rel] > 50)):
+                    mvi_entities2.add(head)
+                    mvi_entities2.add(tail)
+                    ans.write(line + b'\n')
+            print("entry3:", len(mvi_entities2))
+            with open("entry3.pkl", "wb") as f:
+                pickle.dump(mvi_entities2, f)
 
 
 # 提取一跳可达实体
