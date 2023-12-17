@@ -97,7 +97,7 @@ def Select1():
 
 此时包含758个实体：
 
-![image-20231210204604118](C:\Users\wyzhou\AppData\Roaming\Typora\typora-user-images\image-20231210204604118.png)
+![image-20231210204604118](figs\image-20231210204604118.png)
 
 #### 4.提取二跳实体
 
@@ -177,7 +177,7 @@ def Select2():
 
 此时包含50231562个实体：
 
-![image-20231210204710588](C:\Users\wyzhou\AppData\Roaming\Typora\typora-user-images\image-20231210204710588.png)
+![image-20231210204710588](figs\image-20231210204710588.png)
 
 生成新的gz文件：
 
@@ -249,6 +249,6 @@ def Select3():
 
 最终包含17711个实体：
 
-![image-20231210211311481](C:\Users\wyzhou\AppData\Roaming\Typora\typora-user-images\image-20231210211311481.png)
+![image-20231210211311481](figs\image-20231210211311481.png)
 
 ## 第二阶段：
