@@ -11,12 +11,12 @@ from tqdm import tqdm
 # 设定参数:允许遍历的最大次数
 max_run_times = 1000000
 
-# # 读取Movie_tag.csv文件，构建movie字典
-# movie_tags = pd.read_csv("Movie_tag.csv")
-# movie = {
-#     movie_tags["id"][i]: movie_tags['tag'][i]
-#     for i in range(len(movie_tags))
-# }
+# 读取Movie_tag.csv文件，构建movie字典
+movie_tags = pd.read_csv("lab2/Stage1/Movie_tag.csv")
+movie = {
+    movie_tags["id"][i]: movie_tags['tag'][i]
+    for i in range(len(movie_tags))
+}
 template_str = "http://rdf.freebase.com/ns/"
 
 # 构建实体_tag字典
