@@ -404,7 +404,57 @@ def movie_entry_mapping():  # 将电影实体的ID 映射到[0, 𝑛𝑢𝑚 �
 movie_entry_mapping()
 ```
 
+然后是遍历我们阶段一得到的47006个三元组，对578个实体以外的实体赋予编号，并对关系编号，从而实现映射关系。
 
+```python
+file1 = '../../Stage1/final.gz'
+outfile1 = 'data/Douban/kg_final.txt'  # 三元组映射
+outfile2 = 'data/Douban/entry-mapping.pkl'  # 实体映射
+outfile3 = 'data/Douban/relation-mapping.pkl'  # 关系映射
+
+
+def entry_index_mapping():
+    entries = []  # 通过按顺序加载到list中，来实现映射功能
+    relations = []  # 关系映射
+    with open(outfile2, 'rb') as f1:  # 已经映射过的一部分实体
+        for line in f1:
+            entry = line.decode().strip().split()[1]
+            entries.append(entry)
+    triples = []
+    with open(outfile1, 'w') as f1:
+        with gzip.open(file1, 'rb') as f:
+            for line in tqdm(f, total=47006):
+                triple_parts = line.decode().strip().split('\t')
+                if (triple_parts[0] not in entries):
+                    entries.append(triple_parts[0])
+                if (triple_parts[1] not in relations):
+                    relations.append(triple_parts[1])
+                if (triple_parts[2] not in entries):
+                    entries.append(triple_parts[2])
+                idx1 = entries.index(triple_parts[0])
+                idx2 = relations.index(triple_parts[1])
+                idx3 = entries.index(triple_parts[2])
+                f1.write(f'{idx1} {idx2} {idx3}\n')
+    with open(outfile2, 'wb') as f1:
+        count = 0
+        for entry in entries:
+            f1.write(f'{count}\t\t{entry}\n'.encode('utf-8'))
+            count += 1
+    with open(outfile3, 'wb') as f2:
+        count = 0
+        for relation in relations:
+            f2.write(f'{count}\t\t{relation}\n'.encode('utf-8'))
+            count += 1
+
+
+entry_index_mapping()
+```
+
+通过遍历所有的三元组，对实体和关系进行编号，从而实现三元组到编号的映射。
+
+结果如下：
+
+![image-20231218235123933](figs\image-20231218235123933.png)
 
 #### 2.
 
