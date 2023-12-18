@@ -1,9 +1,9 @@
 import gzip
 from tqdm import tqdm
 
-file3 = 'data/Douban/movie_id_map.txt'  # 电影ID的映射
-file4 = 'data/Douban/douban2fb.txt'  # 实体-Id映射
-outfile2 = 'data/Douban/entry-mapping.pkl'  # 实体映射
+file3 = 'lab2/Stage2/stage2/data/Douban/movie_id_map.txt'  # 电影ID的映射
+file4 = 'lab2/Stage2/stage2/data/Douban/douban2fb.txt'  # 实体-Id映射
+outfile2 = 'lab2/Stage2/stage2/data/Douban/entry-mapping.pkl'  # 实体映射
 
 
 def movie_entry_mapping():  # 将电影实体的ID 映射到[0, 𝑛𝑢𝑚 𝑜𝑓 𝑚𝑜𝑣𝑖𝑒𝑠)范围内,0-577
@@ -26,11 +26,11 @@ def movie_entry_mapping():  # 将电影实体的ID 映射到[0, 𝑛𝑢𝑚 �
             count += 1
 
 
-movie_entry_mapping()
-file1 = '../../Stage1/final.gz'
-outfile1 = 'data/Douban/kg_final.txt'  # 三元组映射
-outfile2 = 'data/Douban/entry-mapping.pkl'  # 实体映射
-outfile3 = 'data/Douban/relation-mapping.pkl'  # 关系映射
+# movie_entry_mapping()
+file1 = 'lab2/Stage1/final.gz'
+outfile1 = 'lab2/Stage2/stage2/data/Douban/kg_final.txt'  # 三元组映射
+outfile2 = 'lab2/Stage2/stage2/data/Douban/entry-mapping.pkl'  # 实体映射
+outfile3 = 'lab2/Stage2/stage2/data/Douban/relation-mapping.pkl'  # 关系映射
 
 
 # with open(file1, 'rb') as f1:
@@ -47,10 +47,9 @@ def entry_index_mapping():
         for line in f1:
             entry = line.decode().strip().split()[1]
             entries.append(entry)
-    triples = []
     with open(outfile1, 'w') as f1:
         with gzip.open(file1, 'rb') as f:
-            for line in tqdm(f, total=2382802):
+            for line in f:
                 triple_parts = line.decode().strip().split('\t')
                 if (triple_parts[0] not in entries):
                     entries.append(triple_parts[0])
@@ -61,7 +60,7 @@ def entry_index_mapping():
                 idx1 = entries.index(triple_parts[0])
                 idx2 = relations.index(triple_parts[1])
                 idx3 = entries.index(triple_parts[2])
-                f1.write(f'{idx1}\t{idx2}\t{idx3}')
+                f1.write(f'{idx1}\t{idx2}\t{idx3}\n')
     with open(outfile2, 'wb') as f1:
         count = 0
         for entry in entries:

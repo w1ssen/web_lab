@@ -7,51 +7,74 @@
 构建实体-tag字典，同时匹配获得Freebase中对应的实体（共578个可匹配实体），加入到一跳可匹配实体
 
 ```python
+# 读取 id 列表
+import pickle
+
+origin_movies = set()
 def entry0():
-    mvi_entities = set()
+
+    # 构建实体-tag字典，同时匹配获得Freebase中对应的实体（共578个可匹配实体），加入到一跳可匹配实体
     with open('douban2fb.txt', 'rb') as f:
         for line in f:
             line = line.strip()
             parts = line.decode().split('\t')
-            mvi_entities.add(parts[1])
-            movie_entity[parts[1]] = {
-                "tag": movie[int(parts[0])]
-            }  # 构建实体_tag字典
-    print("entry0:", len(mvi_entities))
+            origin_movies.add(parts[1])
+    print("entry0:", len(origin_movies))
     with open("entry0.pkl", "wb") as f:
-        pickle.dump(mvi_entities, f)
+        pickle.dump(origin_movies, f)
+
+
+entry0()
 ```
 
-#### 2.提取一跳实体
+通过二进制读写文件可以大幅缩短运行时间。最终得到起始实体的数量是578。同时把这578个实体存在集合中，用于后续的筛选
+
+![image-20231218214759402](.\lab2\report\figs\image-20231218214759402.png)
+
+#### 2.得到一跳子图，提取一跳实体，并对实体和关系计数
 
 以578个可匹配实体为起点，通过三元组关联，提取一跳可达的全部实体，以形成新的起点集合。
 
 ```python
+import gzip
+import pickle
+from tqdm import tqdm
+
+template_str = "http://rdf.freebase.com/ns/m."
+template_str2 = "http://rdf.freebase.com/ns/"
+freebase_info_fpath = "freebase_douban.gz"  # 初始freebase
+outfile1 = "graph_1step.gz"  # 一跳输出文件
+outfile2 = "graph_2step.gz"  # 二跳输出文件
+outfile3 = "graph_3step.gz"
+
+entry_num = {}
 def step1():
     # 以 mvi_entities 为起点生成一跳子图，保存到 grarph1step.gz 文件中
     with gzip.open(outfile1, 'wb') as ans:
         with open('entry0.pkl', 'rb') as f1:
             mvi_entities = pickle.load(f1)
         with gzip.open(freebase_info_fpath, 'rb') as f:
+
             for line in tqdm(f, total=395577070):
                 # if count > max_run_times:
                 #     break  # 超过设定上限即停止查找一跳可达实体
                 line = line.strip()
                 triple_parts = line.decode().split('\t')
                 if (template_str not in triple_parts[0]
-                        or template_str not in triple_parts[1]
+                        or template_str2 not in triple_parts[1]
                         or template_str not in triple_parts[2]):
                     continue
                 # 头实体
-                head = triple_parts[0][len(template_str) + 1:].strip('>')
+                head = triple_parts[0][len(template_str2) + 1:].strip('>')
+                
                 # 关系
-                rel = triple_parts[1][len(template_str) + 1:].strip('>')
+                rel = triple_parts[1][len(template_str2) + 1:].strip('>')
                 # 尾实体
-                tail = triple_parts[2][len(template_str) + 1:].strip('>')
+                tail = triple_parts[2][len(template_str2) + 1:].strip('>')
 
                 # 保存头实体在 mvi_entities 中的三元组
                 if head in mvi_entities:
-                    ans.write(line + b'\n')
+                    ans.write(f'{head}\t{rel}\t{tail}\n'.encode('utf-8'))
                     # 实体相关三元组计数
                     if (head in entry_num):
                         entry_num[head] += 1
@@ -65,7 +88,13 @@ def step1():
                         entry_num[rel] += 1
                     else:
                         entry_num[rel] = 1
+
+
+step1()
+print(entry_num)
 ```
+
+根据我们前期筛选的情况和给出的578个电影实体的情况来看，电影对应的实体都是以"http://rdf.freebase.com/ns/m."为前缀的，因此将这个字符串用于头实体尾实体的前缀筛选，同时用"http://rdf.freebase.com/ns/"筛选关系。
 
 #### 3.筛选一跳所得实体
 
