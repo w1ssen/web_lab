@@ -1,1 +1,1 @@
-parse_args
+train

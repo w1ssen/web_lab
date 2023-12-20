@@ -34,7 +34,7 @@ def parse_args():
     parser.add_argument('--relation_dim', type=int, default=32,
                         help='Relation Embedding size.')
 
-    parser.add_argument('--KG_embedding_type', type=str, default='TransE',
+    parser.add_argument('--KG_embedding_type', type=str, default='TransR',
                         help='Specify the type of the KG embedding from {TransE, TransR}.')
 
     parser.add_argument('--kg_l2loss_lambda', type=float, default=1e-4,

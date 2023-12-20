@@ -102,7 +102,8 @@ step1()
 print(entry_num)
 ```
 
-根据我们前期筛选的情况和给出的578个电影实体的情况来看，电影对应的实体都是以"http://rdf.freebase.com/ns/m."为前缀的，因此将这个字符串用于头实体尾实体的前缀筛选，同时用"http://rdf.freebase.com/ns/"筛选关系。
+根据我们前期筛选的情况和给出的578个电影实体的情况来看，电影对应的实体都是以"http://rdf.freebase.com/ns/m."为前缀的，
+因此将这个字符串用于头实体尾实体的前缀筛选，同时用"http://rdf.freebase.com/ns/"筛选关系。
 
 筛选以m.为前缀的实体的另外一个原因是，如果不做如下筛选，二跳会得到很多三元组(上亿)，而非电影的实体对我们没什么帮助。
 
@@ -461,7 +462,251 @@ entry_index_mapping()
 通过查阅资料和解读代码熟悉了 baseline 的框架代码，包括数据加载部分（stage2\data_loader 文件夹下的 loader_base.py 和 loader_KG_free.py），模型搭建部分（stage2\model文件夹下的 KG_free.py ）， 以及模型训练部分（ stage2 文件夹下的main_KG_free.py）。
 
 #### 3.完成基于图谱嵌入的模型
+#####(a)	在 loader_Embedding_based.py 中按要求实现 KG 的构建。
+通过rename函数创建逆向三元组，然后用concat拼接原三元组和逆向三元组
+关系数为kg_data中r列的最大值加1；实体数为kg_data中h列和t列中的最大值加1；三元组的数量为kg_data的长度
+```python
+    def construct_data(self, kg_data):
+        '''
+            kg_data 为 DataFrame 类型
+        '''
+        # 1. 为KG添加逆向三元组，即对于KG中任意三元组(h, r, t)，添加逆向三元组 (t, r+n_relations, h)，
+        #    并将原三元组和逆向三元组拼接为新的DataFrame，保存在 self.kg_data 中。
+        i_kg_data = copy.deepcopy(kg_data)
+        i_kg_data = i_kg_data.rename({'h': 't', 't': 'h'}, axis=1)  # 生成逆向三元组
+        i_kg_data['r'] += (max(kg_data['r']) + 1)
+        self.kg_data = pd.concat([kg_data, i_kg_data], axis=0, ignore_index=True)
 
+        # 2. 计算关系数，实体数和三元组的数量
+        self.n_relations = max(self.kg_data['r']) + 1
+        self.n_entities = max(max(self.kg_data['h']), max(self.kg_data['t'])) + 1
+        self.n_kg_data = self.kg_data.shape[0]
+
+        # 3. 根据 self.kg_data 构建字典 self.kg_dict ，其中key为h, value为tuple(t, r)，
+        #    和字典 self.relation_dict，其中key为r, value为tuple(h, t)。
+        self.kg_dict = collections.defaultdict(list)
+        self.relation_dict = collections.defaultdict(list)
+        
+        for _, (h, r, t) in self.kg_data.iterrows():
+            self.kg_dict[h].append((t, r))
+            self.relation_dict[r].append((h, t))
+```
+
+#####(b)	在 Embedding_based.py 中实现chapter12中介绍的 TransE算法
+首先对关系嵌入、头实体嵌入、尾实体嵌入、负采样的尾实体嵌入进行L2归一化处理，采用torch中的normalize函数实现；
+然后通过向量距离计算三元组的得分；
+最后使用BPR进行优化，使负样本得分大于正样本。
+```python
+    def calc_kg_loss_TransE(self, h, r, pos_t, neg_t):
+        """
+        h:      (kg_batch_size)
+        r:      (kg_batch_size)
+        pos_t:  (kg_batch_size)
+        neg_t:  (kg_batch_size)
+        """
+        r_embed = self.relation_embed(r)                                               
+        
+        h_embed = self.entity_embed(h)                                                 
+        pos_t_embed = self.entity_embed(pos_t)                                       
+        neg_t_embed = self.entity_embed(neg_t)                                   
+
+        # 5. 对关系嵌入，头实体嵌入，尾实体嵌入，负采样的尾实体嵌入进行L2范数归一化
+        r_embed = r_embed / torch.norm(r_embed, dim=1, keepdim=True)
+        h_embed = h_embed / torch.norm(h_embed, dim=1, keepdim=True)
+        pos_t_embed = pos_t_embed / torch.norm(pos_t_embed, dim=1, keepdim=True)
+        neg_t_embed = neg_t_embed / torch.norm(neg_t_embed, dim=1, keepdim=True)
+
+        # 6. 分别计算正样本三元组 (h_embed, r_embed, pos_t_embed) 和负样本三元组 (h_embed, r_embed, neg_t_embed) 的得分
+        pos_score = torch.norm(h_embed + r_embed - pos_t_embed, dim=1)**2 
+        neg_score = torch.norm(h_embed + r_embed - neg_t_embed, dim=1)**2                                                                  
+
+        # 7. 使用 BPR Loss 进行优化，尽可能使负样本的得分大于正样本的得分
+        kg_loss = (-1.0) * F.logsigmoid(neg_score - pos_score)
+        kg_loss = torch.mean(kg_loss)
+
+        l2_loss = _L2_loss_mean(h_embed) + _L2_loss_mean(r_embed) + _L2_loss_mean(pos_t_embed) + _L2_loss_mean(neg_t_embed)
+        loss = kg_loss + self.kg_l2loss_lambda * l2_loss
+        return loss
+```
+
+#####(c)在 Embedding_based.py 中实现TransR算法
+利用torch中的squeeze函数进行维度运算，然后计算三元组的分数
+```python
+def calc_kg_loss_TransR(self, h, r, pos_t, neg_t):
+        """
+        h:      (kg_batch_size)
+        r:      (kg_batch_size)
+        pos_t:  (kg_batch_size)
+        neg_t:  (kg_batch_size)
+        """
+        r_embed = self.relation_embed(r)                                                # (kg_batch_size, relation_dim)
+        W_r = self.trans_M[r]                                                           # (kg_batch_size, embed_dim, relation_dim)
+
+        h_embed = self.entity_embed(h)                                                  # (kg_batch_size, embed_dim)
+        pos_t_embed = self.entity_embed(pos_t)                                          # (kg_batch_size, embed_dim)
+        neg_t_embed = self.entity_embed(neg_t)                                          # (kg_batch_size, embed_dim)
+
+        # 1. 计算头实体，尾实体和负采样的尾实体在对应关系空间中的投影嵌入
+        r_mul_h = mul(W_r, h_embed)                                                                       
+        r_mul_pos_t = mul(W_r, pos_t_embed)                                             
+        r_mul_neg_t = mul(W_r, neg_t_embed)                                          
+
+        # 2. 对关系嵌入，头实体嵌入，尾实体嵌入，负采样的尾实体嵌入进行L2范数归一化
+        r_embed = r_embed / torch.norm(r_embed, dim=1, keepdim=True)  
+        r_mul_h = r_mul_h / torch.norm(r_mul_h, dim=1, keepdim=True)
+        r_mul_pos_t = r_mul_pos_t / torch.norm(r_mul_pos_t, dim=1, keepdim=True)
+        r_mul_neg_t = r_mul_neg_t / torch.norm(r_mul_neg_t, dim=1, keepdim=True)
+
+        # 3. 分别计算正样本三元组 (h_embed, r_embed, pos_t_embed) 和负样本三元组 (h_embed, r_embed, neg_t_embed) 的得分
+        pos_score = torch.norm(r_mul_h + r_embed - r_mul_pos_t, dim=1)**2  
+        neg_score = torch.sum(r_mul_h * r_embed - r_mul_neg_t, dim=1)**2  
+
+        # 4. 使用 BPR Loss 进行优化，尽可能使负样本的得分大于正样本的得分
+        kg_loss = (-1.0) * F.logsigmoid(neg_score - pos_score)  # 这里跟一般的bpr相反，因为要使正样本得分小
+        kg_loss = torch.mean(kg_loss)
+
+        l2_loss = _L2_loss_mean(r_mul_h) + _L2_loss_mean(r_embed) + _L2_loss_mean(r_mul_pos_t) + _L2_loss_mean(r_mul_neg_t)
+        loss = kg_loss + self.kg_l2loss_lambda * l2_loss
+        return loss
+```
+
+#####(d)	在 Embedding_based.py 中通过相加，逐元素乘积，拼接等方式为物品嵌入注入图谱实体的语义信息
+```python
+    def calc_cf_loss(self, user_ids, item_pos_ids, item_neg_ids):
+        """
+        user_ids:       (cf_batch_size)
+        item_pos_ids:   (cf_batch_size)
+        item_neg_ids:   (cf_batch_size)
+        """
+        user_embed = self.user_embed(user_ids)                              
+        item_pos_embed = self.item_embed(item_pos_ids)                      
+        item_neg_embed = self.item_embed(item_neg_ids)                       
+
+        item_pos_kg_embed = self.entity_embed(item_pos_ids)                       
+        item_neg_kg_embed = self.entity_embed(item_neg_ids)                         
+        
+        # 8. 为 物品嵌入 注入 实体嵌入的语义信息
+        # 三选一：
+        # 相加
+        # item_pos_cf_embed = item_pos_embed + item_pos_kg_embed
+        # item_neg_cf_embed = item_neg_embed + item_neg_kg_embed
+        
+        # 逐元素相乘 
+        # item_pos_cf_embed = item_pos_embed * item_pos_kg_embed
+        # item_neg_cf_embed = item_neg_embed * item_neg_kg_embed
+        
+        # 拼接
+        item_pos_cf_embed = torch.cat([item_pos_embed,item_pos_kg_embed],dim=1)                                                           
+        item_neg_cf_embed = torch.cat([item_neg_embed,item_neg_kg_embed],dim=1) 
+        user_embed=torch.cat([user_embed,user_embed],dim=1) 
+
+        pos_score = torch.sum(user_embed * item_pos_cf_embed, dim=1)                   
+        neg_score = torch.sum(user_embed * item_neg_cf_embed, dim=1)                    
+
+        cf_loss = (-1.0) * torch.log(1e-10 + F.sigmoid(pos_score - neg_score))
+        cf_loss = torch.mean(cf_loss)
+
+        l2_loss = _L2_loss_mean(user_embed) + _L2_loss_mean(item_pos_cf_embed) + _L2_loss_mean(item_neg_cf_embed)
+        loss = cf_loss + self.cf_l2loss_lambda * l2_loss
+        return loss
+
+
+    def calc_score(self, user_ids, item_ids):
+        """
+        user_ids:  (n_users)
+        item_ids:  (n_items)
+        """
+        user_embed = self.user_embed(user_ids)                                          # (n_users, embed_dim)
+
+        item_embed = self.item_embed(item_ids)                                          # (n_items, embed_dim)
+        item_kg_embed = self.entity_embed(item_ids)                                     # (n_items, embed_dim)
+
+        # 9. 为 物品嵌入 注入 实体嵌入的语义信息
+        # 三选一：
+        # 相加
+        # item_cf_embed = item_embed + item_kg_embed 
+        
+        # 逐元素相乘  
+        # item_cf_embed = item_embed * item_kg_embed
+        
+        # 拼接
+        item_cf_embed = torch.cat([item_embed,item_kg_embed], 1)
+        user_embed=torch.cat([user_embed,user_embed],dim=1) 
+
+
+        cf_score = torch.matmul(user_embed, item_cf_embed.transpose(0, 1))              
+        
+        return cf_score
+
+```
+
+#####(e)按照给出的源代码，采用多任务方式（KG 损失与 CF 损失相加）对模型进行更新，开始训练。
+计算出kg的损失和cf的损失并相加
+```python
+    def calc_loss(self, user_ids, item_pos_ids, item_neg_ids, h, r, pos_t, neg_t):
+            """
+            user_ids:       (cf_batch_size)
+            item_pos_ids:   (cf_batch_size)
+            item_neg_ids:   (cf_batch_size)
+
+            h:              (kg_batch_size)
+            r:              (kg_batch_size)
+            pos_t:          (kg_batch_size)
+            neg_t:          (kg_batch_size)
+            """
+            if self.KG_embedding_type == 'TransR':
+                calc_kg_loss = self.calc_kg_loss_TransR
+            elif self.KG_embedding_type == 'TransE':
+                calc_kg_loss = self.calc_kg_loss_TransE
+            
+            kg_loss = calc_kg_loss(h, r, pos_t, neg_t)
+            cf_loss = self.calc_cf_loss(user_ids, item_pos_ids, item_neg_ids)
+            
+            loss = kg_loss + cf_loss
+            return loss
+```
+对模型进行更新
+```python
+    # train model
+    for epoch in range(1, args.n_epoch + 1):
+        model.train()
+
+        # train kg & cf
+        time1 = time()
+        total_loss = 0
+        n_batch = data.n_cf_train // data.cf_batch_size + 1
+
+        for iter in range(1, n_batch + 1):
+            time2 = time()
+            cf_batch_user, cf_batch_pos_item, cf_batch_neg_item = data.generate_cf_batch(data.train_user_dict, data.cf_batch_size)
+            kg_batch_head, kg_batch_relation, kg_batch_pos_tail, kg_batch_neg_tail = data.generate_kg_batch(data.kg_dict, data.kg_batch_size, data.n_entities)
+
+            cf_batch_user = cf_batch_user.to(device)
+            cf_batch_pos_item = cf_batch_pos_item.to(device)
+            cf_batch_neg_item = cf_batch_neg_item.to(device)
+
+            kg_batch_head = kg_batch_head.to(device)
+            kg_batch_relation = kg_batch_relation.to(device)
+            kg_batch_pos_tail = kg_batch_pos_tail.to(device)
+            kg_batch_neg_tail = kg_batch_neg_tail.to(device)
+
+            batch_loss = model(cf_batch_user, cf_batch_pos_item, cf_batch_neg_item, kg_batch_head, kg_batch_relation, kg_batch_pos_tail, kg_batch_neg_tail, is_train=True)
+
+            if np.isnan(batch_loss.cpu().detach().numpy()):
+                logging.info('ERROR: Epoch {:04d} Iter {:04d} / {:04d} Loss is nan.'.format(epoch, iter, n_batch))
+                sys.exit()
+
+            batch_loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+            total_loss += batch_loss.item()
+
+            if (iter % args.print_every) == 0:
+                logging.info('KG & CF Training: Epoch {:04d} Iter {:04d} / {:04d} | Time {:.1f}s | Iter Loss {:.4f} | Iter Mean Loss {:.4f}'.format(epoch, iter, n_batch, time() - time2, batch_loss.item(), total_loss / iter))
+        logging.info('KG & CF Training: Epoch {:04d} Total Iter {:04d} | Total Time {:.1f}s | Iter Mean Loss {:.4f}'.format(epoch, n_batch, time() - time1, total_loss / n_batch))
+```
+训练过程截图：
+![1](figs\无标题.png)
 
 
 
@@ -476,34 +721,50 @@ KG_free运行结果：
 2023-12-19 16:31:27,241 - root - INFO - Best CF Evaluation: Epoch 0040 | Precision [0.2966, 0.2532], Recall [0.0660, 0.1094], NDCG [0.3110, 0.2829]
 ```
 
-多任务+相加的注入实体信息：
+TransE+多任务+相加的注入实体信息：
 
 ```c
-2023-12-19 16:56:10,549 - root - INFO - Best CF Evaluation: Epoch 0040 | Precision [0.3016, 0.2535], Recall [0.0690, 0.1128], NDCG [0.3108, 0.2819]
+Best CF Evaluation: Epoch 0040 | Precision [0.3016, 0.2535], Recall [0.0690, 0.1128], NDCG [0.3108, 0.2819]
 ```
 
-多任务+相乘的注入实体信息：
+TransE+多任务+相乘的注入实体信息：
 
 ```c
 Best CF Evaluation: Epoch 0050 | Precision [0.2899, 0.2575], Recall [0.0646, 0.1110], NDCG [0.3055, 0.2848]
 ```
 
-多任务+拼接的注入实体信息：
+TransE+多任务+拼接的注入实体信息：
 
 ```c
 Best CF Evaluation: Epoch 0040 | Precision [0.3016, 0.2535], Recall [0.0690, 0.1128], NDCG [0.3107, 0.2819]
 ```
 
+TransR+多任务+相加的注入实体信息：
+```c
+Best CF Evaluation: Epoch 0050 | Precision [0.2877, 0.2503], Recall [0.0657, 0.1110], NDCG [0.2976, 0.2752]
+```
 
+TransR+多任务+相乘的注入实体信息：
+```c
+Best CF Evaluation: Epoch 0040 | Precision [0.2899, 0.2541], Recall [0.0660, 0.1141], NDCG [0.3029, 0.2808]
+```
+
+TransR+多任务+拼接的注入实体信息：
+```c
+Best CF Evaluation: Epoch 0050 | Precision [0.2886, 0.2497], Recall [0.0678, 0.1091], NDCG [0.2979, 0.2747]
+```
 
 表格对比如下：
 
 |                           | Recall@5 | Recall@10 | NDCG@5 | NDCG@10 |
 | ------------------------- | -------- | --------- | ------ | ------- |
 | MF                        | 0.0660   | 0.1094    | 0.3110 | 0.2829  |
-| 多任务+相加的注入实体信息 | 0.0690   | 0.1128    | 0.3110 | 0.2819  |
-| 多任务+相乘的注入实体信息 | 0.0646   | 0.1110    | 0.3055 | 0.2848  |
-| 多任务+拼接的注入实体信息 | 0.0690   | 0.1128    | 0.3107 | 0.2819  |
+| TransE+多任务+相加注入实体信息 | 0.0690   | 0.1128    | 0.3110 | 0.2819  |
+| TransE+多任务+相乘注入实体信息 | 0.0646   | 0.1110    | 0.3055 | 0.2848  |
+| TransE+多任务+拼接注入实体信息 | 0.0690   | 0.1128    | 0.3107 | 0.2819  |
+| TransR+多任务+相加注入实体信息 |  0.0657  |   0.1110  | 0.2976 |  0.2752  |
+| TransR+多任务+相乘注入实体信息 | 0.0660   | 0.1141    | 0.3029 | 0.2808  |
+| TransR+多任务+拼接注入实体信息 | 0.0678   | 0.1091    | 0.2979 | 0.2747  |
 
 根据数据表格，可以看出不同的图谱嵌入方法和MF在不同指标下的表现：
 
